@@ -9,8 +9,13 @@ venv/
 env/
 
 # 构建产物 / Build artifacts
-build/
-*.spec
+/build/
+/build-*/
+/dist/
+/dist-*/
+/downloads/
+/sync-to-fork/
+/release-*/
 
 # IDE / 编辑器
 .idea/

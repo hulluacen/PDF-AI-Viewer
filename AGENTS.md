@@ -3,6 +3,8 @@
 本文件面向**后续进入此仓库的 AI 助手 / 开发者**，提供工程上下文与约定，避免重复摸索。
 面向用户的介绍请看 [README.md](README.md)。
 
+当前维护仓库为 https://github.com/hulluacen/PDF-AI-Viewer，日常变更同步 main；fangvv/PDF-AI-Viewer 是上游参考。
+
 ## 项目是什么
 
 一个类似「知云文献翻译」的桌面 PDF 阅读翻译工具，Python + PyQt6 开发。
@@ -46,15 +48,15 @@ python main.py
 pyinstaller --noconfirm "PDF阅读翻译器.spec"
 ```
 
-产物在 `dist/PDF阅读翻译器.exe`。
+本地产物在 `dist/PDF阅读翻译器.exe`。构建目录由 Git 忽略，exe 仅通过本 fork 的 Releases 发布。
 
 ### 打包陷阱（务必遵守）
 
 1. **必须保留 spec 里的 `excludes` 列表**。PyMuPDF 的 `pymupdf.table` 模块会 `import pandas`，
    进而拖入 numpy / matplotlib / lxml / openpyxl / fontTools 等一整套数据科学库，
-   导致 exe 从 ~65MB 膨胀到 ~110MB，超过 GitHub 100MB 文件限制导致无法推送。
+   导致 exe 从 ~65MB 膨胀到 ~110MB，增加不必要的下载体积。
    本项目只用 `pymupdf` 渲染 PDF，不需要这些库，已在 spec 中排除。
-2. exe 约 65MB，超过 GitHub 50MB 推荐上限但低于 100MB 硬限制，可正常推送（会有警告）。
+2. exe 约 65MB，作为 Release 附件发布，不提交到源码仓库。
 3. 若改动后 exe 体积异常增大，先检查是否又引入了被排除的依赖。
 4. **打包后窗口/任务栏图标**：窗口/任务栏图标由 exe 运行时加载 `logo.ico`，必须在 spec 的
    `Analysis.datas` 里把 `logo.ico`/`logo.png` 打包进去（`datas=[('logo.ico', '.'), ('logo.png', '.')]`），
@@ -63,20 +65,14 @@ pyinstaller --noconfirm "PDF阅读翻译器.spec"
    另外 **PyQt6 没有 `QApplication.setAppUserModelID`**（会 AttributeError），设置 Windows 任务栏
    AppUserModelID 需用 `ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID`（见 `main()`）。
 
-### 标准工作流（每次改代码后都要做）
+### 开发与发布工作流
 
-每次修改代码后，**必须重新打包并上传到 GitHub**，否则仓库里的 exe 与源码不一致。
-完整发布流程如下（按顺序执行）：
-
-1. **清理不需要的文件**：删除本次改动产生的临时/无用文件（如调试脚本、临时图片、备份文件等），
-   保持仓库整洁。注意 `dist/PDF阅读翻译器.exe` 和 `*.spec` 是**被 git 跟踪**的，不要误删。
-2. **更新文档**：若功能有增删改，同步更新 `README.md`（面向用户的功能/使用说明）和
-   `AGENTS.md`（面向 AI 助手/开发者的工程约定与坑）。README 保持中英双语。
-3. **重新打包**：`pyinstaller --noconfirm "PDF阅读翻译器.spec"`
-4. **确认体积**：检查 `dist/PDF阅读翻译器.exe` **小于 100MB**（GitHub 硬限制，超过会拒绝推送）
-5. **提交并推送**：`git add` 源码 + spec + exe + 两个 md，然后 `git commit` + `git push`
-
-> 若打包后 exe 超过 100MB，说明又引入了被排除的依赖，先排查再推送。
+1. 按改动范围做必要检查，提交源码、测试、spec、资源和文档。README 保持中英双语。
+2. 构建目录 `dist/`、`dist-*/`、`build/`、`build-*/` 不提交；spec 必须保留。普通源码或文档修改无需自动打包、上传 exe。
+3. 用户要求发布新版本时，更新 version.py 和 CHANGELOG.md，再通过 spec 打包，验证产物并生成 SHA256SUMS.txt。
+4. 下载或部署大型文件前，必须说明用途、预计大小和保存位置，取得用户当次明确同意；不能用此前发布授权替代。
+5. 源码提交并推送到本 fork 后，在相应版本 tag 创建 Release，exe 和校验文件作为附件上传；下载入口指向 Releases。
+6. 已发布 tag 和附件保留；删除 main 中的构建产物不重写 Git 历史，也不修改已有 Release。
 
 ## 已知代码约定 / 坑
 
@@ -164,11 +160,9 @@ pyinstaller --noconfirm "PDF阅读翻译器.spec"
 
 ## 提交约定
 
-- 提交信息用中文，遵循 `fix:` / `feat:` / `build:` 前缀（参考 git log）。
-- `dist/PDF阅读翻译器.exe` 和 `*.spec` 是**被 git 跟踪**的（.gitignore 未忽略），
-  重新打包后需一并提交。
-- 注意：exe 超过 100MB 时 GitHub 会拒绝推送；若历史中混入超大 exe，
-  需用 `git reset --soft` 合并/重写未推送提交来移除。
+- 提交信息用中文，采用 `fix:` / `feat:` / `build:` / `chore:` 等前缀。
+- 保留并提交源码、spec、测试、资源和文档；不要提交 exe、构建缓存和同步临时文件。
+- 同步 main 不强制推送；移除当前目录中的旧 exe 不重写已有提交历史。
 
 ## 本地修复与回归检查
 
@@ -181,6 +175,6 @@ pyinstaller --noconfirm "PDF阅读翻译器.spec"
 - 回环接口 session 禁用环境及系统代理，公网接口保持 requests 默认代理行为。刷新/检查连接使用独立配置，不改变取消对话框前的运行配置。
 - 回归检查 `tests/test_bugfixes.py` 覆盖高 DPI 像素、链接坐标、无鉴权 PopTrans、代理绕过和常规模型流式请求。
 
-## 本 fork 的 0.1.0 发布范围
+## 本 fork 的版本与发布约定
 
-用户最终要求保留已经上传的 BUG 修复版 exe，不恢复旧版。本次追加 0.1.0 源码版本、测试和文档，不重新打包或上传 exe。version.py 是源码版本唯一来源，main.py 关于窗口及 QApplication 读取此版本。CHANGELOG.md 记录具体修改；README 说明已上传 exe 含 BUG 修复，但其关于版本号尚未重打包更新。后续二进制发布须按用户新的明确授权执行。
+version.py 是版本唯一来源，main.py 关于窗口及 QApplication 读取此版本。当前版本仍为 0.1.0，Release 已发布对应 Windows exe 和 SHA256SUMS.txt：https://github.com/hulluacen/PDF-AI-Viewer/releases/tag/v0.1.0 。main 移除 dist，历史提交与 v0.1.0 tag 保留；此次仓库清理不改功能、不重新打包、不发布新版本。

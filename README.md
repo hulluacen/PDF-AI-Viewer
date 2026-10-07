@@ -6,8 +6,8 @@
 
 **本 fork 版本 / Fork version: 0.1.0** — [修改记录 / Changelog](CHANGELOG.md)
 
-> 源码版本已定义为 0.1.0。`dist/` 保留已上传的 BUG 修复版 exe；本次不重新打包，因此该 exe 的“关于”版本号尚未更新。
-> The source version is 0.1.0. The uploaded bug-fix executable is retained in `dist/`; its About version has not been rebuilt to match this source version.
+> Windows 0.1.0 便携版及校验文件通过 [本 fork 的 Releases](https://github.com/hulluacen/PDF-AI-Viewer/releases/latest) 发布；仓库仅维护源码、测试、打包配置与文档。
+> Windows builds and checksums are published through this fork’s Releases. The repository keeps source, tests, packaging configuration and documentation.
 
 读英文文献太慢？划词即译，一句话让 AI 总结整篇论文，读完自动变成你自己的 `.md` 笔记。
 **免费、开源、单文件免安装。**
@@ -15,8 +15,8 @@
 A desktop PDF reader with select-to-translate, AI full-document summary and ask-the-paper chat.
 **Free, open source, single-file portable.**
 
-[![Stars](https://img.shields.io/github/stars/fangvv/PDF-AI-Viewer?style=social)](https://github.com/fangvv/PDF-AI-Viewer/stargazers)
-[![Forks](https://img.shields.io/github/forks/fangvv/PDF-AI-Viewer?style=social)](https://github.com/fangvv/PDF-AI-Viewer/forks)
+[![Stars](https://img.shields.io/github/stars/hulluacen/PDF-AI-Viewer?style=social)](https://github.com/hulluacen/PDF-AI-Viewer/stargazers)
+[![Forks](https://img.shields.io/github/forks/hulluacen/PDF-AI-Viewer?style=social)](https://github.com/hulluacen/PDF-AI-Viewer/forks)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.9+](https://img.shields.io/badge/Python-3.9%2B-blue.svg)](https://www.python.org/)
 [![Platform Windows](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)](#-快速开始--quick-start)
@@ -50,18 +50,19 @@ A desktop PDF reader with select-to-translate, AI full-document summary and ask-
 
 **Windows 用户：下载这一个文件，双击即用。不需要装 Python，不需要配环境。**
 
-1. 下载 `PDF阅读翻译器.exe`（约 60 MB，免安装便携版）
+1. 下载 `PDF-AI-Viewer-v0.1.0-windows-x64.exe`（约 64.75 MB，免安装便携版）
 2. 双击打开，把 PDF 拖进窗口
 3. 刷选文本点「翻译」即可 —— **微软 Edge / MyMemory 引擎无需任何 API Key，开箱即用**
 4. 只有想用「大模型翻译 / 全文总结 / AI 问答」时，才需要在「设置 → 大模型设置」填一次 Key
 
-👉 **[⬇ 下载 Windows 免安装版](https://github.com/fangvv/PDF-AI-Viewer/raw/main/dist/PDF%E9%98%85%E8%AF%BB%E7%BF%91%E8%AF%91%E5%99%A8.exe)**
+👉 **[⬇ 下载 Windows 免安装版](https://github.com/hulluacen/PDF-AI-Viewer/releases/latest)**
 
-> 也可以到 [Releases](https://github.com/fangvv/PDF-AI-Viewer/releases) 或仓库的 `dist/` 目录获取。
+> exe 和 SHA256SUMS.txt 校验文件统一从 [Releases](https://github.com/hulluacen/PDF-AI-Viewer/releases) 获取。
+> Download the executable and SHA256SUMS.txt from Releases.
 
 **Windows users: download one file and double-click it. No Python, no environment setup.**
 
-1. Download `PDF阅读翻译器.exe` (~60 MB, portable build)
+1. Download `PDF-AI-Viewer-v0.1.0-windows-x64.exe` (~64.75 MB, portable build)
 2. Double-click it and drag a PDF into the window
 3. Select text and click "Translate" — the **Microsoft Edge / MyMemory engines need no API key at all**
 4. A key is only required for LLM translation / summary / AI chat, configured once under "Settings → LLM Settings"
@@ -250,7 +251,7 @@ If the PDF's folder is not writable (read-only media, file locked by another pro
 | 一定要填 API Key 才能用吗？ | 不需要。划词翻译选「微软 Edge / MyMemory」开箱即用；只有 AI 总结、AI 问答、大模型翻译需要 Key |
 | 我的 API Key 安全吗？ | Key 只存在本机的 Windows 凭据管理器中，不写进配置文件、不上传、不发送到除服务商以外的任何地方 |
 | AI 会把我的论文传到云上吗？ | 只有在你使用大模型相关功能时，文本才会按你填的接口地址发给对应服务商；纯翻译用 Edge / MyMemory 走各自的公开接口 |
-| 有 exe 还要装 Python 吗？ | 不用，`dist/PDF阅读翻译器.exe` 双击即用，配置也只写在用户目录 |
+| 有 exe 还要装 Python 吗？ | 不用，从 Releases 下载的 exe 双击即用，配置也只写在用户目录 |
 | 支持 macOS / Linux 吗？ | 目前只提供 Windows 版。核心是 Python + PyQt6，跨平台移植门槛不高，欢迎提 Issue / PR |
 | 几百页的论文会卡吗？ | 页面按需渲染，滚动大文件依然流畅 |
 | 扫描版 PDF（纯图片）能用吗？ | 翻译与总结依赖可提取的文本；提取不出文本时 AI 问答会自动退回普通对话（软件本身暂不含 OCR） |
@@ -262,7 +263,7 @@ If the PDF's folder is not writable (read-only media, file locked by another pro
 | Do I need an API key to use it? | No. Select-to-translate works out of the box with Microsoft Edge / MyMemory; a key is only needed for LLM translation, summary and AI chat |
 | Is my API key safe? | It is stored only in your local Windows Credential Manager — never in a config file, never uploaded anywhere except to the provider you configured |
 | Does the AI upload my paper to the cloud? | Only when you use LLM features, and only to the provider endpoint you typed in |
-| Do I need Python if there is an exe? | No — `dist/PDF阅读翻译器.exe` just runs; settings are kept in your user folder |
+| Do I need Python if there is an exe? | No — the executable downloaded from Releases just runs; settings are kept in your user folder |
 | macOS / Linux support? | Windows-only for now. The core is Python + PyQt6, so a port is not far off — Issues and PRs welcome |
 | Will a 500-page paper lag? | Pages render on demand, so scrolling large files stays smooth |
 | What about scanned (image-only) PDFs? | Translation and summary rely on extractable text; if there is none, AI chat falls back to plain conversation (the app has no built-in OCR yet) |
@@ -278,7 +279,7 @@ Requires Python 3.9+.
 
 ```bash
 # 克隆仓库 / Clone the repository
-git clone https://github.com/fangvv/PDF-AI-Viewer.git
+git clone https://github.com/hulluacen/PDF-AI-Viewer.git
 cd PDF-AI-Viewer
 
 # 安装依赖 / Install dependencies
@@ -295,18 +296,18 @@ python main.py
 
 ```bash
 pyinstaller --noconfirm "PDF阅读翻译器.spec"
-# 产物 / Output: dist/PDF阅读翻译器.exe
+# 本地输出（不提交 Git）/ Local output (not committed): dist/PDF阅读翻译器.exe
 ```
 
 ---
 
 ## 🤝 反馈与贡献 / Feedback & Contributing
 
-- 遇到问题、想要新功能：[提 Issue](https://github.com/fangvv/PDF-AI-Viewer/issues)
+- 遇到问题、想要新功能：[提 Issue](https://github.com/hulluacen/PDF-AI-Viewer/issues)
 - 欢迎 PR：先开 Issue 说明改动思路，再提 PR 更容易被合入
 - 想参与开发：先看 [AGENTS.md](AGENTS.md)，里面记录了工程约定与打包坑
 
-- Found a bug or want a feature? [Open an Issue](https://github.com/fangvv/PDF-AI-Viewer/issues)
+- Found a bug or want a feature? [Open an Issue](https://github.com/hulluacen/PDF-AI-Viewer/issues)
 - PRs welcome — opening an Issue first makes yours easier to review
 - Want to hack on it? Start with [AGENTS.md](AGENTS.md) for conventions and packaging gotchas
 
@@ -330,7 +331,10 @@ pdf_translator/
 ├── requirements.txt # 依赖清单
 ├── AGENTS.md        # 给 AI 助手/开发者的工程说明与约定
 ├── LICENSE          # MIT 许可证
-├── dist/            # 打包产物（PDF阅读翻译器.exe）
+├── PDF阅读翻译器.spec # PyInstaller 打包配置
+├── version.py       # 程序版本
+├── tests/           # 回归检查
+├── dist/            # 本地打包输出，Git 忽略；exe 发布到 Releases
 ├── screenshot1–4.png    # 界面截图（日间/夜间/问答/大模型设置）
 └── logo.ico / logo.png  # 应用图标
 ```
@@ -384,3 +388,8 @@ PDF 渲染已支持屏幕像素倍率，150%/200% 缩放时保持页面和文字
 使用 PopTrans：在「设置 → 大模型设置」选择「PopTrans 本地翻译」，地址填写 `http://127.0.0.1:8989/v1`（也接受完整聊天接口地址）。无需 API Key 或模型名，点击「检查连接」确认模型已就绪。保存后在主窗口选择「大模型」翻译引擎。此模式用于翻译；总结和问答须切回 OpenAI 兼容模型。回环请求绕过代理。如果后台空闲退出，需要先在 PopTrans 中触发一次翻译，再重试。
 
 PDF rendering now accounts for screen pixel density without changing selection or link coordinates. For PopTrans, choose the PopTrans service type in LLM settings, enter `http://127.0.0.1:8989/v1`, check the connection, save, and select the LLM translation engine. API key and model name are optional in this mode. Summaries and document chat require an OpenAI-compatible model. Loopback requests bypass proxies. If the PopTrans backend has exited while idle, trigger a translation in PopTrans before retrying.
+
+## 上游 / Upstream
+
+本 fork 基于 [fangvv/PDF-AI-Viewer](https://github.com/fangvv/PDF-AI-Viewer)，保留原项目 MIT 许可证。
+This fork is based on fangvv/PDF-AI-Viewer and retains the original MIT license.
