@@ -56,7 +56,7 @@ class ReaderControlsTests(unittest.TestCase):
 
     def test_zoom_controls(self):
         w = self.window
-        w.resize(1200, 800)
+        w.resize(2000, 800)
         QTest.qWait(150)
         self.assertTrue(w.zoom_percent.isVisible())
         self.assertTrue(w.zoom_in_btn.isVisible())

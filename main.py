@@ -811,37 +811,7 @@ class MainWindow(QMainWindow):
 
         toolbar.addSeparator()
 
-        # 全文搜索
-        self.search_edit = QLineEdit()
-        self.search_edit.setPlaceholderText("搜索...")
-        self.search_edit.setFixedWidth(160)
-        self.search_edit.returnPressed.connect(self._do_search)
-        toolbar.addWidget(self.search_edit)
-
-        search_btn = QPushButton("搜索")
-        search_btn.clicked.connect(self._do_search)
-        toolbar.addWidget(search_btn)
-
-        self.search_prev_btn = QPushButton("上一个")
-        self.search_prev_btn.clicked.connect(lambda: self._goto_search(-1))
-        self.search_prev_btn.setEnabled(False)
-        toolbar.addWidget(self.search_prev_btn)
-
-        self.search_next_btn = QPushButton("下一个")
-        self.search_next_btn.clicked.connect(lambda: self._goto_search(1))
-        self.search_next_btn.setEnabled(False)
-        toolbar.addWidget(self.search_next_btn)
-
-        self.search_count_label = QLabel("")
-        toolbar.addWidget(self.search_count_label)
-
-        toolbar.addSeparator()
-
-        # 缩放单独一行，避免常用窗口宽度下被工具栏溢出菜单隐藏。
-        self.addToolBarBreak()
-        toolbar = QToolBar("缩放工具栏")
-        toolbar.setMovable(False)
-        self.addToolBar(toolbar)
+        # 缩放：放在页码导航后、搜索前。
         toolbar.addWidget(QLabel("缩放"))
         self.zoom_mode = QComboBox()
         self.zoom_mode.addItem("适合页面")
@@ -875,6 +845,34 @@ class MainWindow(QMainWindow):
         self.zoom_percent.setToolTip("输入缩放百分比，按 Enter 确认（10%–500%）")
         self.zoom_percent.valueChanged.connect(self._on_zoom_changed)
         toolbar.addWidget(self.zoom_percent)
+
+        toolbar.addSeparator()
+
+        # 全文搜索
+        self.search_edit = QLineEdit()
+        self.search_edit.setPlaceholderText("搜索...")
+        self.search_edit.setFixedWidth(160)
+        self.search_edit.returnPressed.connect(self._do_search)
+        toolbar.addWidget(self.search_edit)
+
+        search_btn = QPushButton("搜索")
+        search_btn.clicked.connect(self._do_search)
+        toolbar.addWidget(search_btn)
+
+        self.search_prev_btn = QPushButton("上一个")
+        self.search_prev_btn.clicked.connect(lambda: self._goto_search(-1))
+        self.search_prev_btn.setEnabled(False)
+        toolbar.addWidget(self.search_prev_btn)
+
+        self.search_next_btn = QPushButton("下一个")
+        self.search_next_btn.clicked.connect(lambda: self._goto_search(1))
+        self.search_next_btn.setEnabled(False)
+        toolbar.addWidget(self.search_next_btn)
+
+        self.search_count_label = QLabel("")
+        toolbar.addWidget(self.search_count_label)
+
+        toolbar.addSeparator()
 
     def _build_statusbar(self):
         self.status = QStatusBar()
