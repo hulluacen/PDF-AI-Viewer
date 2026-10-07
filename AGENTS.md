@@ -169,3 +169,14 @@ pyinstaller --noconfirm "PDF阅读翻译器.spec"
   重新打包后需一并提交。
 - 注意：exe 超过 100MB 时 GitHub 会拒绝推送；若历史中混入超大 exe，
   需用 `git reset --soft` 合并/重写未推送提交来移除。
+
+## 本地修复与回归检查
+
+- PDF 内部链接的 `get_links()["to"]` 为 `pymupdf.Point`，不能调用 `pymupdf.Rect(point)`；转换成从该坐标开始的非空锚点矩形，保留目的位置，避免仅跳到页首。
+- 修改此逻辑后运行 `python tests/test_internal_links.py`。检查包含带两种目标坐标的内部链接、外部链接、普通 PDF、连续切换、渲染及实际跳转位置。
+- 本机打包时应为构建子进程清理 PATH，仅保留 Python、Scripts、Windows System32 与 Windows，避免从 Poppler 工具路径误收集同名 ICU DLL。不要修改系统 PATH。
+
+- PDF 图片的物理像素尺寸按 `zoom * devicePixelRatioF()` 渲染，并设置 pixmap DPR；控件布局和选择/高亮/链接坐标保持 `zoom` 逻辑像素。跨屏 DPR 变化时重新渲染。
+- `llm_service` 持久化显式服务类型：`openai` 或 `poptrans`。PopTrans `/health` 检查就绪，翻译直接发送原文和 `target_lang`，不要求/发送云端 Key 或模型名，不请求 `/v1/models`；不将翻译接口冒充总结/问答模型。
+- 回环接口 session 禁用环境及系统代理，公网接口保持 requests 默认代理行为。刷新/检查连接使用独立配置，不改变取消对话框前的运行配置。
+- 回归检查 `tests/test_bugfixes.py` 覆盖高 DPI 像素、链接坐标、无鉴权 PopTrans、代理绕过和常规模型流式请求。

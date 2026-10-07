@@ -243,6 +243,7 @@ class MainWindow(QMainWindow):
         self.translator = Translator(
             llm_key=settings.get_llm_key(),
             llm_base_url=settings.get_llm_base_url(),
+            llm_service=settings.get_llm_service(),
             llm_model=settings.get_llm_model(),
         )
         self.current_pdf = None
@@ -578,6 +579,13 @@ class MainWindow(QMainWindow):
         layout = QVBoxLayout(dlg)
         layout.setSpacing(10)
 
+        layout.addWidget(QLabel("接口类型"))
+        service_combo = QComboBox()
+        service_combo.addItem("OpenAI 兼容模型", "openai")
+        service_combo.addItem("PopTrans 本地翻译", "poptrans")
+        service_combo.setCurrentIndex(max(0, service_combo.findData(settings.get_llm_service())))
+        layout.addWidget(service_combo)
+
         # 接口地址
         layout.addWidget(QLabel("接口地址 (Base URL)"))
         base_url_edit = QLineEdit(settings.get_llm_base_url())
@@ -603,7 +611,7 @@ class MainWindow(QMainWindow):
         refresh_btn = QPushButton("刷新模型")
         refresh_btn.clicked.connect(
             lambda: self._refresh_llm_models(base_url_edit.text().strip(),
-                                             key_edit.text().strip())
+                                             key_edit.text().strip(), service_combo.currentData())
         )
         model_row.addWidget(refresh_btn)
         layout.addLayout(model_row)
@@ -614,6 +622,17 @@ class MainWindow(QMainWindow):
         hint.setWordWrap(True)
         hint.setStyleSheet("color: #888; font-size: 12px;")
         layout.addWidget(hint)
+
+        def update_service_ui():
+            poptrans = service_combo.currentData() == "poptrans"
+            key_edit.setEnabled(not poptrans)
+            self._llm_model_combo.setEnabled(not poptrans)
+            refresh_btn.setText("检查连接" if poptrans else "刷新模型")
+            hint.setText("PopTrans 地址：http://127.0.0.1:8989/v1。无需 API Key 和模型名。\n"
+                         "仅用于翻译；全文总结和文献问答请使用 OpenAI 兼容模型。" if poptrans else
+                         "支持 OpenAI 兼容服务商。点击「刷新模型」拉取可用模型列表。")
+        service_combo.currentIndexChanged.connect(update_service_ui)
+        update_service_ui()
 
         # 按钮（Windows 习惯：确定在左、取消在右）
         btn_row = QHBoxLayout()
@@ -631,11 +650,13 @@ class MainWindow(QMainWindow):
             key = key_edit.text().strip()
             model = self._llm_model_combo.currentText().strip()
             settings.save_llm_key(key)
-            settings.save_llm_config(base_url, model)
-            self.translator.configure_llm(key, base_url, model)
+            base_url = self.translator.llm.normalize_url(base_url)
+            service = service_combo.currentData()
+            settings.save_llm_config(base_url, model, service)
+            self.translator.configure_llm(key, base_url, model, service)
             self.status.showMessage("大模型设置已保存")
 
-    def _refresh_llm_models(self, base_url: str, api_key: str):
+    def _refresh_llm_models(self, base_url: str, api_key: str, service: str = "openai"):
         """从服务商拉取模型列表并填充下拉框。"""
         from PyQt6.QtWidgets import QMessageBox
         if not base_url:
@@ -643,10 +664,17 @@ class MainWindow(QMainWindow):
             return
         try:
             # 临时用当前输入配置拉取模型
-            self.translator.configure_llm(api_key, base_url, "")
-            models = self.translator.list_llm_models()
+            # 检查使用独立配置，取消对话框不会改变当前翻译接口。
+            from translator import OpenAICompatTranslator
+            probe = OpenAICompatTranslator(api_key, base_url, service=service)
+            models = probe.list_models()
+            if service == "poptrans":
+                QMessageBox.information(self, "连接成功", "PopTrans 已连接，翻译模型已就绪。")
+                return
         except Exception as exc:  # noqa: BLE001
-            QMessageBox.warning(self, "拉取失败", f"无法获取模型列表：\n{exc}")
+            title = "连接失败" if service == "poptrans" else "拉取失败"
+            action = "无法连接 PopTrans" if service == "poptrans" else "无法获取模型列表"
+            QMessageBox.warning(self, title, f"{action}：\n{exc}")
             return
         self._llm_model_combo.clear()
         for m in models:

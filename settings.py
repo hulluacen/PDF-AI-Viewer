@@ -164,9 +164,14 @@ def get_llm_model() -> str:
     return load_settings().get("llm_model", "")
 
 
-def save_llm_config(base_url: str, model: str) -> None:
+def save_llm_config(base_url: str, model: str, service: str = "openai") -> None:
     """保存大模型接口地址和模型名。"""
     s = load_settings()
     s["llm_base_url"] = base_url
     s["llm_model"] = model
+    s["llm_service"] = service
     save_settings(s)
+
+
+def get_llm_service() -> str:
+    return load_settings().get("llm_service", "openai")

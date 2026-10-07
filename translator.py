@@ -7,6 +7,9 @@
 """
 
 import json
+from contextlib import contextmanager
+from urllib.parse import urlsplit
+import ipaddress
 
 import requests
 
@@ -80,13 +83,61 @@ class OpenAICompatTranslator(BaseTranslator):
 
     name = "大模型"
 
-    def __init__(self, api_key: str = "", base_url: str = "", model: str = ""):
+    def __init__(self, api_key: str = "", base_url: str = "", model: str = "", service: str = "openai"):
         self.api_key = api_key
-        self.base_url = base_url.rstrip("/")
+        self.base_url = self.normalize_url(base_url)
         self.model = model
+        self.service = service
+
+    @staticmethod
+    def normalize_url(url):
+        url = url.strip().rstrip("/")
+        if url.endswith("/chat/completions"):
+            url = url[:-len("/chat/completions")]
+        return url
+
+    @contextmanager
+    def _request(self, method, url, **kwargs):
+        host = urlsplit(url).hostname or ""
+        try:
+            local = host.lower() == "localhost" or ipaddress.ip_address(host).is_loopback
+        except ValueError:
+            local = host.lower() == "localhost"
+        # 回环接口直接连接，避免系统代理或环境代理转发本地模型请求。
+        with requests.Session() as session:
+            session.trust_env = not local
+            try:
+                response = session.request(method, url, **kwargs)
+            except requests.exceptions.ConnectionError as exc:
+                raise TranslationError(
+                    f"无法连接接口 {url}。请确认服务正在监听此地址；"
+                    "PopTrans 的 AI 后台可能在空闲后退出，请先在 PopTrans 中触发一次翻译。"
+                ) from exc
+            with response:
+                response.raise_for_status()
+                yield response
+
+    def _headers(self):
+        headers = {"Content-Type": "application/json"}
+        if self.api_key and self.service != "poptrans":
+            headers["Authorization"] = f"Bearer {self.api_key}"
+        return headers
+
+    def check_poptrans(self):
+        parsed = urlsplit(self.base_url)
+        url = f"{parsed.scheme}://{parsed.netloc}/health"
+        with self._request("GET", url, timeout=15) as response:
+            result = response.json()
+        if not result.get("translator_ready"):
+            raise TranslationError("PopTrans 已连接，但翻译模型尚未就绪：" + str(result.get("translator_status", "加载中")))
+        return result
 
     def _validate(self):
         """校验大模型配置，缺失时抛出可读的错误。"""
+        if self.service == "poptrans":
+            if not self.base_url:
+                raise TranslationError("请填写 PopTrans 接口地址")
+            return
         if not self.api_key:
             raise TranslationError("未配置大模型 API Key，请在「设置 → 大模型设置」中填写")
         if not self.base_url:
@@ -94,24 +145,19 @@ class OpenAICompatTranslator(BaseTranslator):
         if not self.model:
             raise TranslationError("未配置大模型名称，请在「设置 → 大模型设置」中填写")
 
-    def _chat(self, prompt: str, timeout: int = 60) -> str:
+    def _chat(self, prompt: str, timeout: int = 60, target_lang: str = "zh") -> str:
         """调用大模型，返回文本结果。"""
         self._validate()
         url = f"{self.base_url}/chat/completions"
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json",
-        }
-        payload = {
-            "model": self.model,
-            "messages": [{"role": "user", "content": prompt}],
-            "temperature": 0.3,
-        }
-        resp = requests.post(url, json=payload, headers=headers, timeout=timeout)
-        resp.raise_for_status()
-        # 强制 UTF-8 解码，避免服务商未声明 charset 时按 ISO-8859-1 解码导致乱码
-        resp.encoding = "utf-8"
-        result = resp.json()
+        if self.service == "poptrans":
+            payload = {"messages": [{"role": "user", "content": prompt}],
+                       "stream": False, "target_lang": target_lang}
+        else:
+            payload = {"model": self.model, "messages": [{"role": "user", "content": prompt}],
+                       "temperature": 0.3}
+        with self._request("POST", url, json=payload, headers=self._headers(), timeout=timeout) as resp:
+            resp.encoding = "utf-8"
+            result = resp.json()
         try:
             content = result["choices"][0]["message"]["content"]
         except (KeyError, IndexError):
@@ -124,19 +170,12 @@ class OpenAICompatTranslator(BaseTranslator):
         """流式调用大模型（支持多轮 messages），逐块 yield 文本内容。"""
         self._validate()
         url = f"{self.base_url}/chat/completions"
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json",
-        }
         payload = {
-            "model": self.model,
-            "messages": messages,
-            "temperature": temperature,
-            "stream": True,
+            "model": self.model, "messages": messages,
+            "temperature": temperature, "stream": True,
         }
-        with requests.post(url, json=payload, headers=headers, timeout=timeout,
+        with self._request("POST", url, json=payload, headers=self._headers(), timeout=timeout,
                            stream=True) as resp:
-            resp.raise_for_status()
             # 强制 UTF-8 解码，避免 SSE 流未声明 charset 时按 ISO-8859-1 解码导致乱码
             resp.encoding = "utf-8"
             for line in resp.iter_lines(decode_unicode=True):
@@ -176,6 +215,8 @@ class OpenAICompatTranslator(BaseTranslator):
         doc_text: 当前阅读的文献全文（可选）。非空时像 Chatbox 附加文件一样，
         作为首对 user/assistant 消息注入；系统提示词本身保持不变。
         """
+        if self.service == "poptrans":
+            raise TranslationError("PopTrans 接口仅用于翻译，不支持文献问答；请切换到 OpenAI 兼容模型服务。")
         messages = [{"role": "system", "content": self._CHAT_SYSTEM}]
         if doc_text.strip():
             messages.append({
@@ -191,6 +232,8 @@ class OpenAICompatTranslator(BaseTranslator):
 
     def summarize_stream(self, text: str, lang: str = "zh"):
         """流式总结文本，逐块 yield 内容。"""
+        if self.service == "poptrans":
+            raise TranslationError("PopTrans 接口仅用于翻译，不支持全文总结；请切换到 OpenAI 兼容模型服务。")
         if not text.strip():
             return
         prompt = (
@@ -215,11 +258,12 @@ class OpenAICompatTranslator(BaseTranslator):
         """从服务商拉取可用模型列表。"""
         if not self.base_url:
             raise TranslationError("未配置大模型接口地址，请在「设置」中填写")
+        if self.service == "poptrans":
+            self.check_poptrans()
+            return []
         url = f"{self.base_url}/models"
-        headers = {"Authorization": f"Bearer {self.api_key}"}
-        resp = requests.get(url, headers=headers, timeout=15)
-        resp.raise_for_status()
-        result = resp.json()
+        with self._request("GET", url, headers=self._headers(), timeout=15) as resp:
+            result = resp.json()
         models = result.get("data", [])
         names = []
         for m in models:
@@ -231,6 +275,8 @@ class OpenAICompatTranslator(BaseTranslator):
     def translate(self, text: str, src: str = "auto", dst: str = "zh") -> str:
         if not text.strip():
             return ""
+        if self.service == "poptrans":
+            return self._chat(text, target_lang=dst)
         prompt = (
             f"请将以下文本翻译成{'中文' if dst == 'zh' else dst}，"
             f"只输出翻译结果，不要添加任何解释或原文：\n\n{text}"
@@ -294,19 +340,20 @@ class MyMemoryTranslator(BaseTranslator):
 class Translator:
     """翻译管理器，支持自动回退或指定引擎。"""
 
-    def __init__(self, llm_key: str = "", llm_base_url: str = "", llm_model: str = ""):
-        self.llm = OpenAICompatTranslator(llm_key, llm_base_url, llm_model)
+    def __init__(self, llm_key: str = "", llm_base_url: str = "", llm_model: str = "", llm_service: str = "openai"):
+        self.llm = OpenAICompatTranslator(llm_key, llm_base_url, llm_model, llm_service)
         self.engines = [
             EdgeTranslator(),
             self.llm,
             MyMemoryTranslator(),
         ]
 
-    def configure_llm(self, api_key: str, base_url: str, model: str):
+    def configure_llm(self, api_key: str, base_url: str, model: str, service: str = "openai"):
         """配置大模型参数。"""
         self.llm.api_key = api_key
-        self.llm.base_url = base_url.rstrip("/")
+        self.llm.base_url = self.llm.normalize_url(base_url)
         self.llm.model = model
+        self.llm.service = service
 
     def list_llm_models(self) -> list:
         """拉取大模型可用模型列表。"""

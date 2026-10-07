@@ -71,6 +71,13 @@ class PdfPageWidget(QWidget):
                 target_page = link.get("page", 0)
                 target_rect = link.get("to")
                 if target_rect is not None:
+                    # get_links()["to"] 是目标点，不能直接传给 Rect。
+                    # 构造非空锚点矩形，保留目标坐标并避免跳转退回页首。
+                    if isinstance(target_rect, pymupdf.Point):
+                        target_rect = pymupdf.Rect(
+                            target_rect.x, target_rect.y,
+                            target_rect.x + 1, target_rect.y + 1,
+                        )
                     self._internal_links.append(
                         (pymupdf.Rect(link["from"]), target_page, pymupdf.Rect(target_rect))
                     )
@@ -98,13 +105,14 @@ class PdfPageWidget(QWidget):
 
     def ensure_rendered(self):
         """确保页面已渲染（首次可见时调用）。"""
-        if self._rendered:
+        if self._rendered and self.pixmap.devicePixelRatioF() == self.devicePixelRatioF():
             return
         self._render()
         self.update()
 
     def _render(self):
-        mat = pymupdf.Matrix(self.zoom, self.zoom)
+        ratio = self.devicePixelRatioF()
+        mat = pymupdf.Matrix(self.zoom * ratio, self.zoom * ratio)
         pix = self.page.get_pixmap(matrix=mat, alpha=False)
         img = QImage(
             pix.samples,
@@ -118,8 +126,10 @@ class PdfPageWidget(QWidget):
             # 夜间模式：对页面像素做颜色反转（白底→黑底，黑字→白字）
             img.invertPixels()
         self.pixmap = QPixmap.fromImage(img)
+        self.pixmap.setDevicePixelRatio(ratio)
         self._rendered = True
-        self.setFixedSize(self.pixmap.size())
+        rect = self.page.rect
+        self.setFixedSize(int(rect.width * self.zoom), int(rect.height * self.zoom))
 
     def set_theme(self, theme: str):
         """设置主题（light/dark），切换后重新渲染页面。"""
@@ -142,6 +152,8 @@ class PdfPageWidget(QWidget):
     def paintEvent(self, event):
         painter = QPainter(self)
         if self.pixmap:
+            if self.pixmap.devicePixelRatioF() != self.devicePixelRatioF():
+                self._render()
             painter.drawPixmap(0, 0, self.pixmap)
         else:
             # 未渲染时画浅色占位背景

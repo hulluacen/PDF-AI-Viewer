@@ -365,3 +365,17 @@ When "Auto" is selected, the program tries each engine in turn until one succeed
 
 - 灵感来自「知云文献翻译」/ Inspired by "Zhiyun Literature Translation"
 - 感谢 PyQt6、PyMuPDF 等开源项目 / Thanks to PyQt6, PyMuPDF and other open-source projects
+
+## 本地修复 / Local fix
+
+修复带目录或参考文献内部跳转链接的 PDF 打开失败问题：将 PyMuPDF 返回的目标点转换成有效锚点矩形，保留精确跳转位置。
+
+Fix opening PDFs with internal table-of-contents or reference links by converting PyMuPDF destination points into valid anchor rectangles while preserving the destination coordinates.
+
+## 高 DPI 与 PopTrans 本地接口 / High DPI and local PopTrans
+
+PDF 渲染已支持屏幕像素倍率，150%/200% 缩放时保持页面和文字清晰，选择与链接坐标仍使用逻辑像素。
+
+使用 PopTrans：在「设置 → 大模型设置」选择「PopTrans 本地翻译」，地址填写 `http://127.0.0.1:8989/v1`（也接受完整聊天接口地址）。无需 API Key 或模型名，点击「检查连接」确认模型已就绪。保存后在主窗口选择「大模型」翻译引擎。此模式用于翻译；总结和问答须切回 OpenAI 兼容模型。回环请求绕过代理。如果后台空闲退出，需要先在 PopTrans 中触发一次翻译，再重试。
+
+PDF rendering now accounts for screen pixel density without changing selection or link coordinates. For PopTrans, choose the PopTrans service type in LLM settings, enter `http://127.0.0.1:8989/v1`, check the connection, save, and select the LLM translation engine. API key and model name are optional in this mode. Summaries and document chat require an OpenAI-compatible model. Loopback requests bypass proxies. If the PopTrans backend has exited while idle, trigger a translation in PopTrans before retrying.
