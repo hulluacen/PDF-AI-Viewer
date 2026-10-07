@@ -395,35 +395,46 @@ class PdfViewer(QScrollArea):
         # 渲染首屏
         QTimer.singleShot(0, self._render_visible)
 
-    def load_document_progress(self, path: str, progress_callback=None) -> int:
-        """带进度回调的加载，返回总页数。
+    def load_document_progress(self, path: str, progress_callback=None) -> int | None:
+        """准备完整新文档后再替换当前文档；回调返回 False 时取消。"""
+        new_doc = pymupdf.open(path)
+        staging = QWidget()
+        pages = []
+        committed = False
+        try:
+            total = new_doc.page_count
+            if progress_callback and progress_callback(0, total) is False:
+                return None
+            for i in range(total):
+                w = PdfPageWidget(new_doc[i], self.zoom, self.theme, staging)
+                pages.append(w)
+                w.textSelected.connect(self.textSelected)
+                w.textSelectedAt.connect(self.textSelectedAt)
+                w.linkClicked.connect(self.linkClicked)
+                w.internalLinkClicked.connect(self.internalLinkClicked)
+                if progress_callback and progress_callback(i + 1, total) is False:
+                    return None
 
-        progress_callback(done, total) 在每页创建后调用。
-        """
-        previous_doc = self.doc
-        self.doc = pymupdf.open(path)
-        self._clear_pages()
-        if previous_doc is not None:
-            previous_doc.close()
-        self._empty_label.hide()
-        # 重新启用滚动条
-        self.verticalScrollBar().setEnabled(True)
-        self.horizontalScrollBar().setEnabled(True)
-        total = self.doc.page_count
-        for i, page in enumerate(self.doc):
-            w = PdfPageWidget(page, self.zoom, self.theme)
-            w.textSelected.connect(self.textSelected)
-            w.textSelectedAt.connect(self.textSelectedAt)
-            w.linkClicked.connect(self.linkClicked)
-            w.internalLinkClicked.connect(self.internalLinkClicked)
-            self._layout.addWidget(w)
-            self.page_widgets.append(w)
-            if progress_callback:
-                progress_callback(i + 1, total)
-        self.pageChanged.emit(1, total)
-        # 渲染首屏
-        QTimer.singleShot(0, self._render_visible)
-        return total
+            previous_doc = self.doc
+            self._clear_pages()
+            self.doc = new_doc
+            self.page_widgets = pages
+            for w in pages:
+                self._layout.addWidget(w)
+            committed = True
+            if previous_doc is not None:
+                previous_doc.close()
+            self._empty_label.hide()
+            self.verticalScrollBar().setEnabled(True)
+            self.horizontalScrollBar().setEnabled(True)
+            self.pageChanged.emit(1, total)
+            QTimer.singleShot(0, self._render_visible)
+            return total
+        finally:
+            if not committed:
+                # 所有临时页面仍由 staging 持有；取消不影响当前阅读状态。
+                new_doc.close()
+            staging.deleteLater()
 
     def _clear_pages(self):
         # 立即从布局中移除旧页面，避免 deleteLater 延迟删除期间

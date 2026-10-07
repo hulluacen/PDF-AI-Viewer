@@ -1210,29 +1210,40 @@ class MainWindow(QMainWindow):
             self.load_pdf(path)
 
     def load_pdf(self, path: str):
+        if getattr(self, "_loading_pdf", False):
+            return
         # 显示加载进度对话框
         progress = QProgressDialog("正在加载 PDF...", "取消", 0, 100, self)
         progress.setWindowTitle("加载中")
         progress.setWindowModality(Qt.WindowModality.WindowModal)
         progress.setMinimumDuration(0)
+        progress.setAutoClose(False)
+        progress.setAutoReset(False)
         progress.setValue(0)
 
         def on_progress(done, total):
             if total > 0:
                 progress.setMaximum(total)
-                progress.setValue(done)
                 progress.setLabelText(f"正在加载 PDF...（{done}/{total} 页）")
+                progress.setValue(done)
             # 处理界面事件，让进度条刷新
             from PyQt6.QtWidgets import QApplication
             QApplication.processEvents()
+            return not progress.wasCanceled()
 
+        self._loading_pdf = True
         try:
-            self.viewer.load_document_progress(path, on_progress)
+            total = self.viewer.load_document_progress(path, on_progress)
         except Exception as exc:  # noqa: BLE001
             progress.close()
             QMessageBox.critical(self, "打开失败", f"无法打开 PDF：\n{exc}")
             return
-        progress.close()
+        finally:
+            self._loading_pdf = False
+            progress.close()
+        if total is None:
+            self.status.showMessage("已取消加载 PDF")
+            return
 
         self._load_bookmarks()
 
