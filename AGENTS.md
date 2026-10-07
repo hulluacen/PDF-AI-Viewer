@@ -190,3 +190,5 @@ version.py 是版本唯一来源，main.py 关于窗口及 QApplication 读取�
 ## PDF 加载取消
 
 load_document_progress 回调返回 False 表示取消，返回 None 表示未提交新文档。页面先在隐藏 staging 容器准备，成功后才替换 doc/page_widgets；取消或准备失败关闭 new_doc 并删除临时容器，不改变原文档。主窗口检查 wasCanceled，关闭自动复位/自动关闭以保留最后一页取消状态；_loading_pdf 防止事件处理中重入。取消作为正常操作，不弹打开失败。运行 tests/test_load_cancel.py：实际点击取消，检查开始/中途/最后一页、空窗口/原文档、释放句柄、再次加载和打开失败。
+
+- 隐藏 staging 中的页面移交到阅读布局后，必须显式 show，再激活布局并 adjustSize；仅验证 page_widgets/渲染标志不能证明页面显示。test_load_cancel 检查重复打开后的容器尺寸、visibleRegion 和实际视口白色页面像素。

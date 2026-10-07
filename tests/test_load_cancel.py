@@ -55,6 +55,32 @@ class LoadCancelTests(support.ReaderControlsTests):
         self.assertEqual(len(w.viewer.page_widgets), 40)
         self.assertEqual(w.current_pdf, str(target.resolve()))
 
+    def test_repeated_open_has_visible_page_area(self):
+        from PyQt6.QtCore import QEvent
+        w = self.window
+        for mode in (1, 2, 0):
+            w.zoom_mode.setCurrentIndex(mode)
+            for _ in range(6):
+                w.close_pdf()
+                w.load_pdf(str(self.pdf))
+                QTest.qWait(30)
+                self.app.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+                viewer = w.viewer
+                self.assertGreater(viewer._container.width(), 0)
+                self.assertGreater(viewer._container.height(), 0)
+                page = viewer.page_widgets[0]
+                self.assertTrue(page.isVisible())
+                self.assertGreater(page.visibleRegion().boundingRect().width(), 0)
+                self.assertTrue(page._rendered)
+                # Sample the actual viewport: generated PDF background is white.
+                position = page.mapTo(viewer.viewport(), page.rect().center())
+                position.setY(min(position.y(), viewer.viewport().height() // 2))
+                self.assertTrue(viewer.viewport().rect().contains(position))
+                color = viewer.viewport().grab().toImage().pixelColor(position)
+                self.assertGreater(color.red(), 240)
+                self.assertGreater(color.green(), 240)
+                self.assertGreater(color.blue(), 240)
+
     def test_open_failure_preserves_current_document(self):
         old_doc, old_pdf = self.window.viewer.doc, self.window.current_pdf
         with patch.object(QMessageBox, "critical") as error:

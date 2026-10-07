@@ -421,6 +421,11 @@ class PdfViewer(QScrollArea):
             self.page_widgets = pages
             for w in pages:
                 self._layout.addWidget(w)
+                # 从隐藏暂存容器移交后显式显示，布局才会计入页面尺寸。
+                w.show()
+            self._layout.invalidate()
+            self._layout.activate()
+            self._container.adjustSize()
             committed = True
             if previous_doc is not None:
                 previous_doc.close()
