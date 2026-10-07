@@ -32,6 +32,8 @@ from PyQt6.QtWidgets import (
     QMenu,
     QFrame,
     QProgressDialog,
+    QTreeWidget,
+    QTreeWidgetItem,
 )
 
 from pdf_viewer import PdfViewer
@@ -282,13 +284,7 @@ class MainWindow(QMainWindow):
         QShortcut(QKeySequence("Ctrl+Shift+Q"), self, activated=self._open_chat)
 
     def _zoom_pdf(self, delta: int):
-        """用快捷键调节 PDF 缩放比例。"""
-        # 切换到百分比模式
-        self.zoom_mode.setCurrentIndex(2)
-        step = 10
-        new_value = self.zoom_slider.value() + delta * step
-        new_value = max(self.zoom_slider.minimum(), min(new_value, self.zoom_slider.maximum()))
-        self.zoom_slider.setValue(new_value)
+        self._on_zoom_changed(round(self.viewer.zoom * 100) + delta * 10)
 
     def _toggle_fullscreen(self):
         """切换全屏/窗口模式。"""
@@ -413,7 +409,26 @@ class MainWindow(QMainWindow):
 
         # 分栏
         self.splitter = QSplitter(Qt.Orientation.Horizontal)
-        self.splitter.addWidget(self.viewer)
+        self.bookmark_panel = QWidget()
+        bookmark_layout = QVBoxLayout(self.bookmark_panel)
+        bookmark_layout.setContentsMargins(8, 8, 8, 8)
+        bookmark_layout.addWidget(QLabel("书签"))
+        self.bookmark_tree = QTreeWidget()
+        self.bookmark_tree.setHeaderLabels(["标题", "页"])
+        self.bookmark_tree.setColumnWidth(0, 190)
+        self.bookmark_tree.itemClicked.connect(self._on_bookmark_clicked)
+        bookmark_layout.addWidget(self.bookmark_tree)
+        self.bookmark_hint = QLabel("此 PDF 没有内置书签")
+        self.bookmark_hint.setWordWrap(True)
+        bookmark_layout.addWidget(self.bookmark_hint)
+        self.bookmark_panel.hide()
+        self.reader_splitter = QSplitter(Qt.Orientation.Horizontal)
+        self.reader_splitter.addWidget(self.bookmark_panel)
+        self.reader_splitter.addWidget(self.viewer)
+        self.reader_splitter.setStretchFactor(0, 0)
+        self.reader_splitter.setStretchFactor(1, 1)
+        self.reader_splitter.setSizes([240, 700])
+        self.splitter.addWidget(self.reader_splitter)
         self.splitter.addWidget(right_panel)
         self.splitter.setStretchFactor(0, 3)
         self.splitter.setStretchFactor(1, 2)
@@ -542,10 +557,20 @@ class MainWindow(QMainWindow):
         desc.setStyleSheet("color: #555;")
         layout.addWidget(desc)
 
-        # 官网
+        fork = QLabel(
+            '当前版本来自 hulluacen 的 fork 分支：<br>'
+            '<a href="https://github.com/hulluacen/PDF-AI-Viewer">'
+            'github.com/hulluacen/PDF-AI-Viewer</a>'
+        )
+        fork.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        fork.setWordWrap(True)
+        fork.setOpenExternalLinks(True)
+        layout.addWidget(fork)
+
+        # 原作者项目
         website = QLabel(
             '<a href="https://github.com/fangvv/PDF-AI-Viewer" style="color:#2d7ff9;">'
-            '官网：github.com/fangvv/PDF-AI-Viewer</a>'
+            '原作者项目：github.com/fangvv/PDF-AI-Viewer</a>'
         )
         website.setAlignment(Qt.AlignmentFlag.AlignCenter)
         website.setOpenExternalLinks(True)
@@ -554,7 +579,7 @@ class MainWindow(QMainWindow):
         # 联系方式
         contact = QLabel(
             '<a href="mailto:fangvv@qq.com" style="color:#2d7ff9;">'
-            '联系我：fangvv@qq.com</a>'
+            '原作者联系：fangvv@qq.com</a>'
         )
         contact.setAlignment(Qt.AlignmentFlag.AlignCenter)
         contact.setOpenExternalLinks(True)
@@ -728,6 +753,13 @@ class MainWindow(QMainWindow):
         toolbar.setMovable(False)
         self.addToolBar(toolbar)
 
+        self.bookmark_action = QAction("书签", self)
+        self.bookmark_action.setCheckable(True)
+        self.bookmark_action.setEnabled(False)
+        self.bookmark_action.setToolTip("显示或隐藏 PDF 内置书签目录")
+        self.bookmark_action.toggled.connect(self.bookmark_panel.setVisible)
+        toolbar.addAction(self.bookmark_action)
+
         open_action = QAction("打开 PDF", self)
         open_action.setShortcut(QKeySequence.StandardKey.Open)
         open_action.triggered.connect(self.open_pdf)
@@ -805,7 +837,11 @@ class MainWindow(QMainWindow):
 
         toolbar.addSeparator()
 
-        # 缩放模式
+        # 缩放单独一行，避免常用窗口宽度下被工具栏溢出菜单隐藏。
+        self.addToolBarBreak()
+        toolbar = QToolBar("缩放工具栏")
+        toolbar.setMovable(False)
+        self.addToolBar(toolbar)
         toolbar.addWidget(QLabel("缩放"))
         self.zoom_mode = QComboBox()
         self.zoom_mode.addItem("适合页面")
@@ -817,14 +853,28 @@ class MainWindow(QMainWindow):
 
         # 百分比滑块（仅百分比模式可用）
         self.zoom_slider = QSlider(Qt.Orientation.Horizontal)
-        self.zoom_slider.setRange(25, 400)
+        self.zoom_slider.setRange(10, 500)
         self.zoom_slider.setValue(150)
         self.zoom_slider.setFixedWidth(120)
         self.zoom_slider.valueChanged.connect(self._on_zoom_changed)
+        self.zoom_out_btn = QPushButton("−")
+        self.zoom_out_btn.setToolTip("缩小 10 个百分点（Ctrl+-）")
+        self.zoom_out_btn.clicked.connect(lambda: self._zoom_pdf(-1))
+        toolbar.addWidget(self.zoom_out_btn)
         toolbar.addWidget(self.zoom_slider)
-
-        self.zoom_label = QLabel("150%")
-        toolbar.addWidget(self.zoom_label)
+        self.zoom_in_btn = QPushButton("+")
+        self.zoom_in_btn.setToolTip("放大 10 个百分点（Ctrl++）")
+        self.zoom_in_btn.clicked.connect(lambda: self._zoom_pdf(1))
+        toolbar.addWidget(self.zoom_in_btn)
+        self.zoom_percent = QSpinBox()
+        self.zoom_percent.setRange(10, 500)
+        self.zoom_percent.setSuffix("%")
+        self.zoom_percent.setValue(150)
+        self.zoom_percent.setFixedWidth(88)
+        self.zoom_percent.setKeyboardTracking(False)
+        self.zoom_percent.setToolTip("输入缩放百分比，按 Enter 确认（10%–500%）")
+        self.zoom_percent.valueChanged.connect(self._on_zoom_changed)
+        toolbar.addWidget(self.zoom_percent)
 
     def _build_statusbar(self):
         self.status = QStatusBar()
@@ -910,36 +960,60 @@ class MainWindow(QMainWindow):
         )
 
     def _on_zoom_mode_changed(self, index):
-        if index == 0:  # 适合页面
-            self.zoom_slider.setEnabled(False)
-            self.zoom_label.setText("适合页面")
+        if index == 0:
             self.viewer.fit_page()
-        elif index == 1:  # 适合宽度
-            self.zoom_slider.setEnabled(False)
-            self.zoom_label.setText("适合宽度")
+        elif index == 1:
             self.viewer.fit_width()
-        else:  # 百分比
-            self.zoom_slider.setEnabled(True)
-            # 以当前实际缩放比例作为百分比初始值
-            current_pct = int(round(self.viewer.zoom * 100))
-            self.zoom_slider.setValue(current_pct)
-            self._on_zoom_changed(current_pct)
+        else:
+            self._on_zoom_changed(round(self.viewer.zoom * 100))
 
     def _on_zoom_changed(self, value):
-        zoom = value / 100.0
-        self.viewer.set_zoom(zoom)
-        self.zoom_label.setText(f"{value}%")
+        value = max(10, min(int(value), 500))
+        self.viewer.set_zoom(value / 100.0)
 
     def _on_viewer_zoom_changed(self, zoom):
-        """Ctrl+滚轮缩放后，同步工具栏的缩放模式与滑块。"""
-        # 切换到百分比模式
-        self.zoom_mode.setCurrentIndex(2)
-        pct = int(round(zoom * 100))
-        # 避免触发 valueChanged 循环
-        self.zoom_slider.blockSignals(True)
-        self.zoom_slider.setValue(pct)
-        self.zoom_slider.blockSignals(False)
-        self.zoom_label.setText(f"{pct}%")
+        index = {self.viewer.FIT_PAGE: 0, self.viewer.FIT_WIDTH: 1,
+                 self.viewer.FIT_NONE: 2}[self.viewer.fit_mode]
+        self.zoom_mode.blockSignals(True)
+        self.zoom_mode.setCurrentIndex(index)
+        self.zoom_mode.blockSignals(False)
+        pct = round(zoom * 100)
+        for control in (self.zoom_slider, self.zoom_percent):
+            control.blockSignals(True)
+            control.setValue(pct)
+            control.blockSignals(False)
+
+    def _load_bookmarks(self):
+        self.bookmark_tree.clear()
+        parents = []
+        for level, title, page, dest in self.viewer.doc.get_toc(simple=False):
+            item = QTreeWidgetItem([title, str(page) if page > 0 else ""])
+            item.setToolTip(0, title)
+            item.setData(0, Qt.ItemDataRole.UserRole, (page, dest))
+            while parents and parents[-1][0] >= level:
+                parents.pop()
+            if parents:
+                parents[-1][1].addChild(item)
+            else:
+                self.bookmark_tree.addTopLevelItem(item)
+            parents.append((level, item))
+        has_bookmarks = self.bookmark_tree.topLevelItemCount() > 0
+        self.bookmark_tree.setVisible(has_bookmarks)
+        self.bookmark_hint.setVisible(not has_bookmarks)
+        self.bookmark_tree.expandToDepth(0)
+        self.bookmark_action.setEnabled(True)
+
+    def _on_bookmark_clicked(self, item, column):
+        import pymupdf
+        page, dest = item.data(0, Qt.ItemDataRole.UserRole)
+        if dest.get("kind") != pymupdf.LINK_GOTO or not 1 <= page <= len(self.viewer.page_widgets):
+            return
+        point = dest.get("to")
+        if point is not None:
+            self.viewer.go_to_internal_link(page - 1,
+                pymupdf.Rect(point.x, point.y, point.x + 1, point.y + 1))
+        else:
+            self.viewer.go_to_page(page)
 
     def _on_text_selected(self, text):
         self._selected_text = text
@@ -1162,6 +1236,8 @@ class MainWindow(QMainWindow):
             return
         progress.close()
 
+        self._load_bookmarks()
+
         # 重置翻译相关状态
         self._selected_text = ""
         self.translate_btn.setEnabled(False)
@@ -1209,6 +1285,9 @@ class MainWindow(QMainWindow):
             self.viewer.verticalScrollBar().value(),
         )
         self.viewer.clear_document()
+        self.bookmark_tree.clear()
+        self.bookmark_action.setChecked(False)
+        self.bookmark_action.setEnabled(False)
         self.current_pdf = None
         self.setWindowTitle("PDF 阅读翻译器")
         # 禁用关闭/总结按钮

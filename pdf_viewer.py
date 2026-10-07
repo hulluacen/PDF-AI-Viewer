@@ -366,16 +366,18 @@ class PdfViewer(QScrollArea):
                 return
             step = 10
             new_pct = int(round(self.zoom * 100)) + (step if delta > 0 else -step)
-            new_pct = max(25, min(new_pct, 400))
+            new_pct = max(10, min(new_pct, 500))
             self.set_zoom(new_pct / 100.0)
-            self.zoomChanged.emit(self.zoom)
             event.accept()
             return
         super().wheelEvent(event)
 
     def load_document(self, path: str):
+        previous_doc = self.doc
         self.doc = pymupdf.open(path)
         self._clear_pages()
+        if previous_doc is not None:
+            previous_doc.close()
         self._empty_label.hide()
         # 重新启用滚动条
         self.verticalScrollBar().setEnabled(True)
@@ -398,8 +400,11 @@ class PdfViewer(QScrollArea):
 
         progress_callback(done, total) 在每页创建后调用。
         """
+        previous_doc = self.doc
         self.doc = pymupdf.open(path)
         self._clear_pages()
+        if previous_doc is not None:
+            previous_doc.close()
         self._empty_label.hide()
         # 重新启用滚动条
         self.verticalScrollBar().setEnabled(True)
@@ -481,9 +486,10 @@ class PdfViewer(QScrollArea):
 
     def set_zoom(self, zoom: float):
         """设置固定百分比缩放。"""
+        self._fit_timer.stop()
+        pos = self._capture_position()
         self.fit_mode = self.FIT_NONE
         self.zoom = zoom
-        pos = self._capture_position()
         for w in self.page_widgets:
             w.set_zoom(zoom)
         # 强制布局更新，确保 w.y() 正确
@@ -493,6 +499,7 @@ class PdfViewer(QScrollArea):
         self._restore_position(pos)
         # 延迟到布局更新后再渲染
         QTimer.singleShot(0, self._render_visible)
+        self.zoomChanged.emit(self.zoom)
 
     def fit_width(self):
         """适合宽度：按视口宽度缩放。"""
@@ -505,7 +512,7 @@ class PdfViewer(QScrollArea):
         self._apply_fit()
 
     def _apply_fit(self):
-        if not self.page_widgets:
+        if self.fit_mode == self.FIT_NONE or not self.page_widgets:
             return
         # 计算视口可用尺寸（减去滚动条宽度）
         vw = self.viewport().width()
@@ -520,8 +527,8 @@ class PdfViewer(QScrollArea):
         else:  # FIT_PAGE
             zoom = min((vw - 20) / pw, (vh - 20) / ph)
         zoom = max(0.1, min(zoom, 5.0))
-        self.zoom = zoom
         pos = self._capture_position()
+        self.zoom = zoom
         for w in self.page_widgets:
             w.set_zoom(zoom)
         # 强制布局更新，确保 w.y() 正确
@@ -531,6 +538,7 @@ class PdfViewer(QScrollArea):
         self._restore_position(pos)
         # 延迟到布局更新后再渲染
         QTimer.singleShot(0, self._render_visible)
+        self.zoomChanged.emit(self.zoom)
 
     def _on_scroll(self, value):
         if not self.page_widgets:

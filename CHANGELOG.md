@@ -1,5 +1,16 @@
 # 修改记录 / Changelog
 
+## 未发布 / Unreleased
+
+- 新增缩放 −/+ 按钮与百分比输入（10%–500%，Enter 确认），与滑块、快捷键、Ctrl+滚轮、适配模式同步；缩放单独占一行，避免控件被溢出菜单隐藏。
+- 新增「书签」开关及左侧 PDF 内置书签树，支持层级展示与目标位置跳转；无书签时明确提示，切换/关闭 PDF 清理目录。
+- 关于窗口增加 hulluacen fork 的说明与项目链接，保留原作者项目和邮箱。
+- 切换固定缩放时停止待执行的自动适配，防止手动比例被覆盖；切换 PDF 释放旧文档句柄。
+- 新增 tests/test_reader_controls.py 覆盖缩放交互、书签生命周期及关于归属信息。
+- 未修改单词选择逻辑；未替换已发布的 v0.1.0 tag 或附件。
+
+Added editable zoom controls, a toggleable embedded PDF outline and fork attribution in About. Fixed pending fit updates overriding manual zoom and released previous PDF handles when switching documents. Existing release assets remain unchanged.
+
 ## 仓库维护 / Repository maintenance — 2026-10-08
 
 - 移除 main 的 dist 目录，忽略本地构建与同步输出，保留 PyInstaller spec。

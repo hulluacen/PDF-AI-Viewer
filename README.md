@@ -28,6 +28,15 @@ A desktop PDF reader with select-to-translate, AI full-document summary and ask-
 
 ---
 
+## 新增阅读功能 / New reader controls (source)
+
+- 打开 PDF 左侧的「书签」按钮可显示或隐藏目录栏；读取 PDF 自带书签，支持层级展开及点击跳转。没有内置书签时显示提示，不自动生成目录。
+- 缩放工具栏增加 `−` / `+` 按钮（每次 10 个百分点），可直接输入 10%–500%，按 Enter 确认。按钮、输入框、滑块、Ctrl+滚轮和适合页面/宽度保持同步。
+- 「关于」注明当前版本来自 hulluacen 的 fork，提供分支链接，同时保留原作者项目与联系方式。
+- 本次功能已加入源码；现有 v0.1.0 Release 附件保留原状，尚不包含这些新增功能。
+
+Toggle the Bookmarks button to show the PDF’s embedded outline and navigate its hierarchy. A separate zoom toolbar provides −/+ buttons and an editable 10%–500% field synchronized with the slider, fit modes and Ctrl+wheel. About includes this fork’s link and keeps the original author information. These additions are in source; the existing v0.1.0 release assets remain unchanged.
+
 ## 📖 目录 / Table of Contents
 
 - [快速开始](#-快速开始--quick-start)
