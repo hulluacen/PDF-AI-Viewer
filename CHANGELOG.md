@@ -1,6 +1,6 @@
 # 修改记录 / Changelog
 
-## 未发布 / Unreleased
+## 0.1.1 — 2026-10-08
 
 - 修复取消功能引入的灰屏回归：隐藏暂存容器中的页面移交后显式显示，激活布局并更新阅读容器尺寸，避免“已打开”但容器为 0×0。新增连续打开、实际可见区域和视口像素验证。
 
@@ -11,7 +11,9 @@
 - 关于窗口增加 hulluacen fork 的说明与项目链接，保留原作者项目和邮箱。
 - 切换固定缩放时停止待执行的自动适配，防止手动比例被覆盖；切换 PDF 释放旧文档句柄。
 - 新增 tests/test_reader_controls.py 覆盖缩放交互、书签生命周期及关于归属信息。
-- 未修改单词选择逻辑；未替换已发布的 v0.1.0 tag 或附件。
+- 搜索 BUG 和单词精确选择不在本次修改范围；保留 v0.1.0 tag 和附件。
+- version.py 统一版本为 0.1.1；新增 Windows x64 exe 与 SHA256SUMS.txt Release 附件。
+- 验证：源码 12 项回归通过，包含 18 次实际页面显示检查、首/中/末页取消、旧文档保留、书签及缩放；最终 0.1.1 exe 另行验证版本、打包模块回归和独立启动。
 
 Added editable zoom controls, a toggleable embedded PDF outline and fork attribution in About. Fixed pending fit updates overriding manual zoom and released previous PDF handles when switching documents. Existing release assets remain unchanged.
 

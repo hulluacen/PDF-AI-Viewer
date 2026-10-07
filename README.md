@@ -4,9 +4,9 @@
 
 # PDF 阅读翻译器 / PDF Reader & Translator
 
-**本 fork 版本 / Fork version: 0.1.0** — [修改记录 / Changelog](CHANGELOG.md)
+**本 fork 版本 / Fork version: 0.1.1** — [修改记录 / Changelog](CHANGELOG.md)
 
-> Windows 0.1.0 便携版及校验文件通过 [本 fork 的 Releases](https://github.com/hulluacen/PDF-AI-Viewer/releases/latest) 发布；仓库仅维护源码、测试、打包配置与文档。
+> Windows 便携版及校验文件通过 [本 fork 的 Releases](https://github.com/hulluacen/PDF-AI-Viewer/releases/latest) 发布；仓库仅维护源码、测试、打包配置与文档。
 > Windows builds and checksums are published through this fork’s Releases. The repository keeps source, tests, packaging configuration and documentation.
 
 读英文文献太慢？划词即译，一句话让 AI 总结整篇论文，读完自动变成你自己的 `.md` 笔记。
@@ -28,14 +28,14 @@ A desktop PDF reader with select-to-translate, AI full-document summary and ask-
 
 ---
 
-## 新增阅读功能 / New reader controls (source)
+## 新增阅读功能 / New reader controls (0.1.1)
 
 - 打开 PDF 左侧的「书签」按钮可显示或隐藏目录栏；读取 PDF 自带书签，支持层级展开及点击跳转。没有内置书签时显示提示，不自动生成目录。
 - 缩放控件位于页码跳转后、搜索前，增加 `−` / `+` 按钮（每次 10 个百分点），可直接输入 10%–500%，按 Enter 确认。按钮、输入框、滑块、Ctrl+滚轮和适合页面/宽度保持同步。
 - 「关于」注明当前版本来自 hulluacen 的 fork，提供分支链接，同时保留原作者项目与联系方式。
-- 本次功能已加入源码；现有 v0.1.0 Release 附件保留原状，尚不包含这些新增功能。
+- 0.1.1 包含上述功能，以及加载取消、保留原文档和“已打开但灰屏”的修复。v0.1.0 tag 与附件保留。
 
-Toggle the Bookmarks button to show the PDF’s embedded outline and navigate its hierarchy. The toolbar places zoom after page navigation and before search, providing −/+ buttons and an editable 10%–500% field synchronized with the slider, fit modes and Ctrl+wheel. About includes this fork’s link and keeps the original author information. These additions are in source; the existing v0.1.0 release assets remain unchanged.
+Toggle the Bookmarks button to show the PDF’s embedded outline and navigate its hierarchy. The toolbar places zoom after page navigation and before search, providing −/+ buttons and an editable 10%–500% field synchronized with the slider, fit modes and Ctrl+wheel. About includes this fork’s link and keeps the original author information. Version 0.1.1 includes these additions, cancellable loading and the blank-view fix. The v0.1.0 tag and assets are preserved.
 
 ## 📖 目录 / Table of Contents
 
@@ -59,7 +59,7 @@ Toggle the Bookmarks button to show the PDF’s embedded outline and navigate it
 
 **Windows 用户：下载这一个文件，双击即用。不需要装 Python，不需要配环境。**
 
-1. 下载 `PDF-AI-Viewer-v0.1.0-windows-x64.exe`（约 64.75 MB，免安装便携版）
+1. 下载 `PDF-AI-Viewer-v0.1.1-windows-x64.exe`（约 64.75 MB，免安装便携版）
 2. 双击打开，把 PDF 拖进窗口
 3. 刷选文本点「翻译」即可 —— **微软 Edge / MyMemory 引擎无需任何 API Key，开箱即用**
 4. 只有想用「大模型翻译 / 全文总结 / AI 问答」时，才需要在「设置 → 大模型设置」填一次 Key
@@ -71,7 +71,7 @@ Toggle the Bookmarks button to show the PDF’s embedded outline and navigate it
 
 **Windows users: download one file and double-click it. No Python, no environment setup.**
 
-1. Download `PDF-AI-Viewer-v0.1.0-windows-x64.exe` (~64.75 MB, portable build)
+1. Download `PDF-AI-Viewer-v0.1.1-windows-x64.exe` (~64.75 MB, portable build)
 2. Double-click it and drag a PDF into the window
 3. Select text and click "Translate" — the **Microsoft Edge / MyMemory engines need no API key at all**
 4. A key is only required for LLM translation / summary / AI chat, configured once under "Settings → LLM Settings"

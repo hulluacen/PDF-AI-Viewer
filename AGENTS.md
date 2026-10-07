@@ -177,15 +177,15 @@ pyinstaller --noconfirm "PDF阅读翻译器.spec"
 
 ## 本 fork 的版本与发布约定
 
-version.py 是版本唯一来源，main.py 关于窗口及 QApplication 读取此版本。当前版本仍为 0.1.0，Release 已发布对应 Windows exe 和 SHA256SUMS.txt：https://github.com/hulluacen/PDF-AI-Viewer/releases/tag/v0.1.0 。main 移除 dist，历史提交与 v0.1.0 tag 保留；此次仓库清理不改功能、不重新打包、不发布新版本。
+version.py 是版本唯一来源，main.py 关于窗口及 QApplication 读取此版本。当前版本为 0.1.1，发布目标 https://github.com/hulluacen/PDF-AI-Viewer/releases/tag/v0.1.1 。main 不跟踪 dist；历史 v0.1.0 tag 与附件保留。
 
-## 新增阅读控件（未发布）
+## 0.1.1 阅读控件
 
 - 缩放控件范围 10%–500%，set_zoom 与 _apply_fit 发出 zoomChanged；主窗口同步控件时屏蔽信号，保留适配模式。固定缩放停止 _fit_timer，_apply_fit 在 FIT_NONE 下直接返回。
 - 书签通过现有 PyMuPDF 的 get_toc(simple=False) 读取；QTreeWidget 保存页码和目的信息，LINK_GOTO 跳转页内位置，不执行外部或脚本目的。空目录提示、关闭禁用开关；切换文档必须清空旧目录。
 - 关于窗口保留原作者项目和邮箱，增加 hulluacen fork 链接。单词选择尚未改动。
 - 运行 python tests/test_reader_controls.py 验证缩放、书签、关于；该测试使用临时配置与生成的 PDF，不读取用户 Key。
-- 现有 v0.1.0 Release 不含这些新增功能；后续发布另行更新版本和取得大型附件上传授权。
+- 0.1.1 包含新增阅读控件和加载修复；v0.1.0 保留。大型附件上传须取得当次明确同意。
 
 ## PDF 加载取消
 

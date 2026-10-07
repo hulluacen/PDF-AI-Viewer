@@ -84,3 +84,9 @@ https://github.com/hulluacen/PDF-AI-Viewer/releases/tag/v0.1.0
 产物 dist-reader-controls/PDF阅读翻译器.exe，64,752,455 字节；SHA-256：`3334cfa485d39dd1658676021d0615fb7d41c1d6184cd5d5d518d56d29d754e7`。仍使用 0.1.0 版本标识，属于包含新增阅读控件的本地试用构建，未替换 GitHub v0.1.0 附件。
 
 源码检查：新增界面 3 项、内部链接 1 项、DPI/接口 4 项通过。从最终 exe 提取实际模块重跑新增界面 3 项通过。仅 Windows 系统 PATH 下离屏启动 6 秒，成功初始化隔离配置，stderr 为空。界面预览检查后将缩放工具栏独立一行；尚未由用户人工试用验收。
+
+## 0.1.1 Release 构建（2026-10-08）
+
+产物 dist-release-0.1.1/PDF-AI-Viewer-v0.1.1-windows-x64.exe：64,751,908 字节；SHA-256：`6b718265de6759791e72308041c6d026e9ee295c77f07b8149fd8e71045cc33d`。原 spec、隔离构建 PATH；版本 0.1.1。最终 exe 提取应用模块运行 7 项检查通过（含三种缩放模式连续打开 18 次的可见区域和实际视口像素、首/中/末页取消、原文档保留、书签和缩放）。关于窗口确认为 0.1.1。仅 Windows 系统 PATH 下离屏启动 6 秒、配置初始化成功、stderr 为空。用户已确认此前相同功能本地版基本可用。
+
+独立 v0.1.1 Release 发布 exe 与 SHA256SUMS.txt；保留 v0.1.0 tag 与附件，main 不提交构建产物。搜索 BUG 和单词精确选择未改动。
