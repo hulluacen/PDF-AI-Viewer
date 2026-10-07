@@ -180,3 +180,7 @@ pyinstaller --noconfirm "PDF阅读翻译器.spec"
 - `llm_service` 持久化显式服务类型：`openai` 或 `poptrans`。PopTrans `/health` 检查就绪，翻译直接发送原文和 `target_lang`，不要求/发送云端 Key 或模型名，不请求 `/v1/models`；不将翻译接口冒充总结/问答模型。
 - 回环接口 session 禁用环境及系统代理，公网接口保持 requests 默认代理行为。刷新/检查连接使用独立配置，不改变取消对话框前的运行配置。
 - 回归检查 `tests/test_bugfixes.py` 覆盖高 DPI 像素、链接坐标、无鉴权 PopTrans、代理绕过和常规模型流式请求。
+
+## 本 fork 的 0.1.0 发布范围
+
+用户最终要求保留已经上传的 BUG 修复版 exe，不恢复旧版。本次追加 0.1.0 源码版本、测试和文档，不重新打包或上传 exe。version.py 是源码版本唯一来源，main.py 关于窗口及 QApplication 读取此版本。CHANGELOG.md 记录具体修改；README 说明已上传 exe 含 BUG 修复，但其关于版本号尚未重打包更新。后续二进制发布须按用户新的明确授权执行。

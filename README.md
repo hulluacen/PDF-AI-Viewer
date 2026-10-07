@@ -4,6 +4,11 @@
 
 # PDF 阅读翻译器 / PDF Reader & Translator
 
+**本 fork 版本 / Fork version: 0.1.0** — [修改记录 / Changelog](CHANGELOG.md)
+
+> 源码版本已定义为 0.1.0。`dist/` 保留已上传的 BUG 修复版 exe；本次不重新打包，因此该 exe 的“关于”版本号尚未更新。
+> The source version is 0.1.0. The uploaded bug-fix executable is retained in `dist/`; its About version has not been rebuilt to match this source version.
+
 读英文文献太慢？划词即译，一句话让 AI 总结整篇论文，读完自动变成你自己的 `.md` 笔记。
 **免费、开源、单文件免安装。**
 

@@ -39,6 +39,7 @@ from translator import Translator, TranslationError
 from latex_fallback import latex_to_unicode
 from chat_window import ChatWindow
 import settings
+from version import __version__
 
 
 def resource_path(name: str) -> str:
@@ -525,7 +526,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(title)
 
         # 版本
-        version = QLabel("版本 1.0.0")
+        version = QLabel(f"版本 {__version__}")
         version.setAlignment(Qt.AlignmentFlag.AlignCenter)
         version.setStyleSheet("color: #888;")
         layout.addWidget(version)
@@ -1404,6 +1405,7 @@ class MainWindow(QMainWindow):
 def main():
     app = QApplication(sys.argv)
     app.setApplicationName("PDFTranslator")
+    app.setApplicationVersion(__version__)
     # Windows 任务栏图标需要 AppUserModelID，否则可能只显示默认空白图标
     if sys.platform == "win32":
         try:

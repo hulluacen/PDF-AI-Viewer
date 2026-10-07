@@ -65,3 +65,7 @@ Git 源码提交 SHA：`4a016f91609792555065c496c8f716d593601510`
 构建沿用上游 spec 和排除列表，仅为构建子进程清理 PATH。命令：`python -m PyInstaller --noconfirm --workpath build-hdpi-poptrans --distpath dist-hdpi-poptrans "PDF阅读翻译器.spec"`；日志 `build-hdpi-poptrans.log`。
 
 使用方法：关闭旧版，打开本目录新版。在大模型设置选择 PopTrans 本地翻译，地址填写 http://127.0.0.1:8989/v1，检查连接并保存，然后在主窗口选择“大模型”翻译引擎。如果 PopTrans AI 后台已空闲退出，需要在 PopTrans 中触发一次翻译后重试。
+
+## 0.1.0 源码同步说明（2026-10-08）
+
+用户最终要求保留已上传的 BUG 修复版 exe 及 dist/SHA256.txt，不恢复旧版，也不重新上传二进制。新增 version.py 定义源码版本 0.1.0，源码关于窗口和 Qt 应用版本使用该值，CHANGELOG.md 详细记录此次改动。已上传 exe 包含 BUG 修复，但由于本次没有重新打包，其关于窗口版本号尚未更新。
