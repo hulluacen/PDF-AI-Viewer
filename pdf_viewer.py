@@ -13,8 +13,8 @@ import pymupdf  # PyMuPDF
 import re
 
 from PyQt6.QtCore import Qt, QRectF, pyqtSignal, QTimer
-from PyQt6.QtGui import QPainter, QColor, QPen, QImage, QPixmap
-from PyQt6.QtWidgets import QWidget, QScrollArea, QVBoxLayout, QLabel
+from PyQt6.QtGui import QPainter, QColor, QPen, QImage, QPixmap, QKeySequence
+from PyQt6.QtWidgets import QWidget, QScrollArea, QVBoxLayout, QLabel, QApplication, QMenu
 
 
 def clean_text(text: str) -> str:
@@ -59,6 +59,10 @@ class PdfPageWidget(QWidget):
         self._sel_start = None
         self._sel_end = None
         self._sel_rects = []
+        self._text_lines = None
+        self._text_chars = []
+        self._selected_chars = []
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         # 搜索高亮矩形（PDF 坐标，绘制时乘 zoom）
         self._search_rects = []
         # 页面链接：uri 链接（外部）与内部链接（跳转到文档内其他位置）
@@ -145,6 +149,7 @@ class PdfPageWidget(QWidget):
         self._rendered = False
         self.pixmap = None
         self._sel_rects = []
+        self._selected_chars = []
         rect = self.page.rect
         self.setFixedSize(int(rect.width * zoom), int(rect.height * zoom))
         self.update()
@@ -183,6 +188,9 @@ class PdfPageWidget(QWidget):
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
+            self.setFocus(Qt.FocusReason.MouseFocusReason)
+            self._selected_chars = []
+            self.textSelected.emit("")
             self._sel_start = event.position()
             self._sel_end = self._sel_start
             self._sel_rects = []
@@ -231,76 +239,131 @@ class PdfPageWidget(QWidget):
             self._sel_start = None
             self._sel_end = None
 
-    def _get_selected_spans(self):
-        """返回与刷选区域相交的文本 span 列表（按阅读顺序）。
-
-        每个 span: (text, x0, y0, x1, y1)
-        """
-        if self._sel_start is None or self._sel_end is None:
-            return []
-        rect = QRectF(self._sel_start, self._sel_end).normalized()
-        clip = pymupdf.Rect(
-            rect.left() / self.zoom,
-            rect.top() / self.zoom,
-            rect.right() / self.zoom,
-            rect.bottom() / self.zoom,
-        )
-        # 获取页面结构化文本
-        data = self.page.get_text("dict")
-        selected = []
-        for block in data.get("blocks", []):
-            if block.get("type") != 0:  # 只处理文本块
+    def _ensure_text_model(self):
+        if self._text_lines is not None:
+            return
+        self._text_lines = []
+        # rawdict 提供字符位置，不再将整个 span 当作一个选择单位。
+        for block in self.page.get_text("rawdict", sort=True).get("blocks", []):
+            if block.get("type") != 0:
                 continue
             for line in block.get("lines", []):
+                chars = []
                 for span in line.get("spans", []):
-                    bbox = span.get("bbox")
-                    if not bbox:
-                        continue
-                    span_rect = pymupdf.Rect(bbox)
-                    # 判断 span 是否与刷选区域相交
-                    if span_rect.intersects(clip):
-                        selected.append((span.get("text", ""), *bbox))
-        return selected
+                    for char in span.get("chars", []):
+                        rect = pymupdf.Rect(char["bbox"]) * self.page.rotation_matrix
+                        chars.append((char["c"], *rect))
+                if not chars:
+                    continue
+                start = len(self._text_chars)
+                self._text_chars.extend(chars)
+                rect = pymupdf.Rect(line["bbox"]) * self.page.rotation_matrix
+                direction = line.get("dir", (1, 0))
+                origin = pymupdf.Point(0, 0) * self.page.rotation_matrix
+                vector = pymupdf.Point(*direction) * self.page.rotation_matrix - origin
+                self._text_lines.append((start, chars, rect, vector))
+                self._text_chars.append(("\n", 0, 0, 0, 0))
+
+    def _cursor_at(self, pos):
+        self._ensure_text_model()
+        if not self._text_lines:
+            return None
+        point = pymupdf.Point(pos.x() / self.zoom, pos.y() / self.zoom)
+        def distance(line):
+            rect = line[2]
+            dx = max(rect.x0 - point.x, point.x - rect.x1, 0)
+            dy = max(rect.y0 - point.y, point.y - rect.y1, 0)
+            return dx * dx + dy * dy
+        start, chars, _, direction = min(self._text_lines, key=distance)
+        projection = point.x * direction.x + point.y * direction.y
+        for i, (_, x0, y0, x1, y1) in enumerate(chars):
+            center = ((x0 + x1) * direction.x + (y0 + y1) * direction.y) / 2
+            if projection < center:
+                return start + i
+        return start + len(chars)
+
+    def _get_selected_spans(self):
+        if self._sel_start is not None and self._sel_end is not None:
+            start = self._cursor_at(self._sel_start)
+            end = self._cursor_at(self._sel_end)
+            if start is None or end is None:
+                self._selected_chars = []
+            else:
+                self._selected_chars = self._text_chars[min(start, end):max(start, end)]
+        return self._selected_chars
 
     def _update_selection(self):
-        spans = self._get_selected_spans()
-        self._sel_rects = []
-        for text, x0, y0, x1, y1 in spans:
-            r = QRectF(
-                x0 * self.zoom,
-                y0 * self.zoom,
-                (x1 - x0) * self.zoom,
-                (y1 - y0) * self.zoom,
-            )
-            self._sel_rects.append(r)
+        self._sel_rects = [QRectF(x0 * self.zoom, y0 * self.zoom,
+                                (x1 - x0) * self.zoom, (y1 - y0) * self.zoom)
+                           for text, x0, y0, x1, y1 in self._get_selected_spans()
+                           if text.strip()]
 
     def _extract_selected_text(self) -> str:
-        spans = self._get_selected_spans()
-        if not spans:
-            return ""
-        # 按 span 顺序拼接文本，并根据几何位置判断分隔符：
-        # - 相邻 span 换行（y 坐标不同）→ 插入换行，交给 clean_text 转成空格
-        # - 同一行但 x 方向有间隙 → 插入空格，避免 "for"+"edge" 粘连成 "foredge"
-        # - 否则直接拼接（同一单词被拆成多个 span 的情况）
-        parts = []
-        prev = None
-        for text, x0, y0, x1, y1 in spans:
-            if not text:
+        return clean_text("".join(char[0] for char in self._get_selected_spans()))
+
+    @staticmethod
+    def _word_char(char):
+        # 中文及日韩文字逐字选择，英文/数字等按词选择。
+        return bool(char) and (char.isalnum() or char == "_") and not (
+            "\u3400" <= char <= "\u9fff" or "\u3040" <= char <= "\u30ff"
+            or "\uac00" <= char <= "\ud7af")
+
+    def mouseDoubleClickEvent(self, event):
+        if event.button() != Qt.MouseButton.LeftButton:
+            return super().mouseDoubleClickEvent(event)
+        self.setFocus(Qt.FocusReason.MouseFocusReason)
+        self._sel_start = self._sel_end = None
+        self._selected_chars = []
+        self._ensure_text_model()
+        point = pymupdf.Point(event.position().x() / self.zoom,
+                              event.position().y() / self.zoom)
+        for _, chars, rect, _ in self._text_lines:
+            if not rect.contains(point):
                 continue
-            if prev is not None:
-                _, px0, py0, px1, py1 = prev
-                # 换行判断：y 中心相差超过半行高
-                cur_cy = (y0 + y1) / 2
-                prev_cy = (py0 + py1) / 2
-                line_h = max(y1 - y0, py1 - py0, 1e-6)
-                if abs(cur_cy - prev_cy) > line_h * 0.5:
-                    parts.append("\n")
-                elif x0 > px1 + 1e-6:  # 同一行但 x 有间隙
-                    parts.append(" ")
-            parts.append(text)
-            prev = (text, x0, y0, x1, y1)
-        raw = "".join(parts)
-        return clean_text(raw)
+            hits = [i for i, char in enumerate(chars)
+                    if pymupdf.Rect(char[1:]).contains(point)]
+            if not hits:
+                break
+            index = min(hits, key=lambda i: abs(pymupdf.Rect(chars[i][1:]).tl.x - point.x))
+            if chars[index][0].isspace():
+                break
+            start, end = index, index + 1
+            def member(i):
+                char = chars[i][0]
+                return self._word_char(char) or (
+                    char in "'-’" and 0 < i < len(chars) - 1
+                    and self._word_char(chars[i - 1][0]) and self._word_char(chars[i + 1][0]))
+            if member(index):
+                while start > 0 and member(start - 1):
+                    start -= 1
+                while end < len(chars) and member(end):
+                    end += 1
+            self._selected_chars = chars[start:end]
+            break
+        self._update_selection()
+        self.update()
+        text = self._extract_selected_text()
+        self.textSelected.emit(text)
+        if text:
+            self.textSelectedAt.emit(text, event.globalPosition().toPoint())
+        event.accept()
+
+    def keyPressEvent(self, event):
+        if event.matches(QKeySequence.StandardKey.Copy):
+            text = self._extract_selected_text()
+            if text:
+                QApplication.clipboard().setText(text)
+            event.accept()
+            return
+        super().keyPressEvent(event)
+
+    def contextMenuEvent(self, event):
+        menu = QMenu(self)
+        action = menu.addAction("复制")
+        action.setEnabled(bool(self._extract_selected_text()))
+        if menu.exec(event.globalPos()) == action:
+            QApplication.clipboard().setText(self._extract_selected_text())
+
 
 
 class PdfViewer(QScrollArea):

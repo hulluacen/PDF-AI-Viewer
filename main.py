@@ -1014,6 +1014,8 @@ class MainWindow(QMainWindow):
             self.viewer.go_to_page(page)
 
     def _on_text_selected(self, text):
+        if not text:
+            self.float_btn.hide()
         self._selected_text = text
         self.translate_btn.setEnabled(bool(text))
         self.status.showMessage(f"已选中 {len(text)} 个字符")

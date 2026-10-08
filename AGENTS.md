@@ -192,3 +192,7 @@ version.py 是版本唯一来源，main.py 关于窗口及 QApplication 读取�
 load_document_progress 回调返回 False 表示取消，返回 None 表示未提交新文档。页面先在隐藏 staging 容器准备，成功后才替换 doc/page_widgets；取消或准备失败关闭 new_doc 并删除临时容器，不改变原文档。主窗口检查 wasCanceled，关闭自动复位/自动关闭以保留最后一页取消状态；_loading_pdf 防止事件处理中重入。取消作为正常操作，不弹打开失败。运行 tests/test_load_cancel.py：实际点击取消，检查开始/中途/最后一页、空窗口/原文档、释放句柄、再次加载和打开失败。
 
 - 隐藏 staging 中的页面移交到阅读布局后，必须显式 show，再激活布局并 adjustSize；仅验证 page_widgets/渲染标志不能证明页面显示。test_load_cancel 检查重复打开后的容器尺寸、visibleRegion 和实际视口白色页面像素。
+
+## 字符精确选择（未发布）
+
+PdfPageWidget 按需缓存 rawdict 字符与阅读行，用起止插入位置选择连续范围，避免相交 span 整段选择；坐标应用页面 rotation_matrix，绘制使用 zoom 逻辑像素。双击按同一行的单词边界选择，词内撇号/连字符连接两侧字母；中文按字符。选区保存在 _selected_chars，释放鼠标后仍可 Ctrl+C/右键复制。既有翻译及链接信号保留；空选区隐藏浮动按钮。运行 tests/test_word_selection.py 检查实际鼠标与复制操作。搜索逻辑和 v0.1.1 附件未改动，后续 Release 另行确认版本与附件上传。

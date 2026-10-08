@@ -37,6 +37,12 @@ A desktop PDF reader with select-to-translate, AI full-document summary and ask-
 
 Toggle the Bookmarks button to show the PDF’s embedded outline and navigate its hierarchy. The toolbar places zoom after page navigation and before search, providing −/+ buttons and an editable 10%–500% field synchronized with the slider, fit modes and Ctrl+wheel. About includes this fork’s link and keeps the original author information. Version 0.1.1 includes these additions, cancellable loading and the blank-view fix. The v0.1.0 tag and assets are preserved.
 
+## 精确选词（源码新增，尚未发布）/ Precise selection (source only)
+
+双击英文单词可选中整个词，拖动可选择部分字符、单词或跨行内容；中文可按字符选取。选中后可用 Ctrl+C 或右键「复制」，也可点击原有浮动翻译按钮。该改动尚未替换 v0.1.1 Release；搜索 BUG 本轮未修复。没有文字层的扫描页无法直接选词。
+
+Double-click an English word or drag to select a character range across lines. Copy using Ctrl+C or the context menu, or use the existing translation button. These changes are in source only; v0.1.1 remains unchanged. Image-only pages require a text layer.
+
 ## 📖 目录 / Table of Contents
 
 - [快速开始](#-快速开始--quick-start)
