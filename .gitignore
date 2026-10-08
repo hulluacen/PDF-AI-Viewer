@@ -16,6 +16,7 @@ env/
 /downloads/
 /sync-to-fork/
 /release-*/
+/data/
 
 # IDE / 编辑器
 .idea/

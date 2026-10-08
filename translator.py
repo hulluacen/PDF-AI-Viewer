@@ -138,7 +138,12 @@ class OpenAICompatTranslator(BaseTranslator):
             if not self.base_url:
                 raise TranslationError("请填写 PopTrans 接口地址")
             return
-        if not self.api_key:
+        host = urlsplit(self.base_url).hostname or ""
+        try:
+            local = host.lower() == "localhost" or ipaddress.ip_address(host).is_loopback
+        except ValueError:
+            local = host.lower() == "localhost"
+        if not self.api_key and not local:
             raise TranslationError("未配置大模型 API Key，请在「设置 → 大模型设置」中填写")
         if not self.base_url:
             raise TranslationError("未配置大模型接口地址，请在「设置 → 大模型设置」中填写")

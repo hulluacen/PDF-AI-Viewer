@@ -24,6 +24,15 @@ a = Analysis(
 )
 pyz = PYZ(a.pure)
 
+# PDFs are rendered by PyMuPDF, never Qt's QImage PDF decoder. Inspection of
+# the 0.1.2 PE imports showed qpdf.dll is the only consumer of Qt6Pdf.dll.
+# Preserve software OpenGL and other Qt plugins for Windows compatibility.
+a.binaries = [entry for entry in a.binaries
+              if entry[0].replace('\\', '/').lower() not in (
+                  'pyqt6/qt6/plugins/imageformats/qpdf.dll',
+                  'pyqt6/qt6/bin/qt6pdf.dll',
+              )]
+
 exe = EXE(
     pyz,
     a.scripts,

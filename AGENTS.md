@@ -28,7 +28,7 @@ main.py          # 主窗口：分栏布局、工具栏、菜单栏、翻译/总
 pdf_viewer.py    # PDF 阅读器：按需渲染、刷选、缩放、链接点击
 translator.py    # 翻译引擎：Edge / OpenAI 兼容大模型 / MyMemory，流式总结与多轮对话
 chat_window.py   # AI 阅读问答：浮动对话窗口（气泡 HTML 渲染、流式显示、字号/主题）
-chat_log.py      # 问答记录读写：与 PDF 同目录同名的 .md 笔记
+chat_log.py      # 便携笔记读写与旧笔记复制导入
 latex_fallback.py # LaTeX 公式 → Unicode 兜底转换（总结与问答共用）
 settings.py      # 配置存储：阅读位置、最近历史、界面设置、大模型配置、问答笔记回退目录
 make_logo.py     # Logo 生成脚本（logo.ico / logo.png）
@@ -177,7 +177,7 @@ pyinstaller --noconfirm "PDF阅读翻译器.spec"
 
 ## 本 fork 的版本与发布约定
 
-version.py 是版本唯一来源，main.py 关于窗口及 QApplication 读取此版本。当前版本为 0.1.2，发布目标 https://github.com/hulluacen/PDF-AI-Viewer/releases/tag/v0.1.2 。main 不跟踪 dist；历史 v0.1.0 tag 与附件保留。
+version.py 是版本唯一来源，main.py 关于窗口及 QApplication 读取此版本。当前版本为 0.2.0，发布目标 https://github.com/hulluacen/PDF-AI-Viewer/releases/tag/v0.2.0 。main 不跟踪 dist；历史 v0.1.0 tag 与附件保留。
 
 ## 0.1.1 阅读控件
 
@@ -204,3 +204,25 @@ _APP_STYLE 与 _APP_STYLE_DARK 分别为普通 QLabel 指定 #333333 与 #cccccc
 ## 0.1.2 发布说明约定
 
 用户确认选词、相关搜索表现和夜间标签可用。版本来源 version.py=0.1.2；Release 说明只写新增和修复，不写测试、验证或构建信息。构建验证保存在 BUILD_REPORT 与本地记录；保留旧 tag/附件，exe 不进入 main，大型附件上传遵守当次说明与确认要求。
+
+
+## 便携数据与模型配置改造（未发布开发版）
+
+- storage_paths.py 统一数据路径：冻结模式 sys.executable 所在目录 / data；源码模式此模块所在目录 / data，不使用 cwd 或 _MEIPASS。首次复制旧 ~/.pdftranslator，保留原件、已有目标优先、migration-v1.json 标记成功迁移。原子写入与可写性检查，不静默转移目录。
+- model_profiles.py 管理独立配置与唯一 active_id，持久化白名单不包含密钥；旧 OpenAI 配置引用原 llm_key，新增配置使用独立凭据标识。PopTrans 不读写云端密钥。settings.py 保留旧 getters 接口供主窗口使用。
+- model_settings_dialog.py 独立设置窗口：左列表、右参数，新增/删除/保存/启用/获取模型/后台连接测试。选择不启用、保存非活动配置不切换、运行任务时禁止修改活动配置。测试使用独立客户端，避免污染运行客户端。
+- chat_log.py 笔记统一 data/chatnotes，文件名含 PDF 路径摘要防止同名冲突；旧同目录笔记、旧回退笔记复制导入，原件保留。程序内 PDF 相对路径保持搬动后的新记录与笔记关联。
+- theme.py 从 main.py 抽离既有日夜样式，main 保留导入名兼容既有调用。新窗口补充作用域内的日夜背景及输入框/列表颜色。
+- spec 保留软件 OpenGL 与既有 excludes，仅移除 Qt QImage 的 qpdf.dll 和其唯一依赖 Qt6Pdf.dll。应用 PDF 使用 PyMuPDF，不使用此图片解码插件；修改后验证打包导入依赖与 PDF 阅读。
+- tests/test_portable_profiles.py 使用临时目录、假凭据服务和回环 HTTP 服务，不读取真实用户 Key。
+- 本次未指定新版本或 GitHub 发布；版本仍 0.1.2，本地新产物为开发测试便携版，已发布稳定版本不改动。
+
+
+## 开发版夜间阅读区（2026-10-09）
+
+搜索框 pdfSearch、书签面板 bookmarkPanel、书签树 bookmarkTree 使用 theme.py 中作用域样式，覆盖树视口、表头、选中项和横向滚动条。PdfViewer.set_theme 统一更新 viewport/pdfPageContainer 背景与空状态标签，初始化及关闭后激活空布局、调整尺寸；不要只改变 QLabel 文字色或 QScrollArea 外层背景。tests/test_reader_theme.py 验证实际背景像素、日夜切换、夜间恢复和书签目标页可见。仍未发布新版本。
+
+
+## 0.2.0 发布
+
+version.py=0.2.0，包含便携数据迁移、独立模型配置、轻量结构拆分及夜间阅读区补齐。Release 仅列新增和修复，构建检查写入 BUILD_REPORT。本地 release-development 开发笔记及所有 data/build/dist 不上传源码。历史 tag 与附件保持。

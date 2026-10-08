@@ -42,6 +42,7 @@ from latex_fallback import latex_to_unicode
 from chat_window import ChatWindow
 import settings
 from version import __version__
+from theme import _APP_STYLE, _APP_STYLE_DARK
 
 
 def resource_path(name: str) -> str:
@@ -410,10 +411,12 @@ class MainWindow(QMainWindow):
         # 分栏
         self.splitter = QSplitter(Qt.Orientation.Horizontal)
         self.bookmark_panel = QWidget()
+        self.bookmark_panel.setObjectName("bookmarkPanel")
         bookmark_layout = QVBoxLayout(self.bookmark_panel)
         bookmark_layout.setContentsMargins(8, 8, 8, 8)
         bookmark_layout.addWidget(QLabel("书签"))
         self.bookmark_tree = QTreeWidget()
+        self.bookmark_tree.setObjectName("bookmarkTree")
         self.bookmark_tree.setHeaderLabels(["标题", "页"])
         self.bookmark_tree.setColumnWidth(0, 190)
         self.bookmark_tree.itemClicked.connect(self._on_bookmark_clicked)
@@ -593,119 +596,22 @@ class MainWindow(QMainWindow):
         dlg.exec()
 
     def _configure_llm(self):
-        """配置大模型（OpenAI 兼容接口）。"""
-        from PyQt6.QtWidgets import (
-            QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
-            QComboBox, QPushButton, QMessageBox,
-        )
+        from model_settings_dialog import ModelSettingsDialog
 
-        dlg = QDialog(self)
-        dlg.setWindowTitle("大模型设置")
-        dlg.setFixedWidth(480)
-        layout = QVBoxLayout(dlg)
-        layout.setSpacing(10)
+        def idle():
+            return not any(worker is not None and worker.isRunning()
+                           for worker in (getattr(self, "worker", None),
+                                          getattr(self, "summary_worker", None),
+                                          getattr(self, "chat_worker", None)))
 
-        layout.addWidget(QLabel("接口类型"))
-        service_combo = QComboBox()
-        service_combo.addItem("OpenAI 兼容模型", "openai")
-        service_combo.addItem("PopTrans 本地翻译", "poptrans")
-        service_combo.setCurrentIndex(max(0, service_combo.findData(settings.get_llm_service())))
-        layout.addWidget(service_combo)
+        def apply_active():
+            self.translator.configure_llm(settings.get_llm_key(), settings.get_llm_base_url(),
+                                          settings.get_llm_model(), settings.get_llm_service())
+            self.status.showMessage("已更新启用的模型配置")
 
-        # 接口地址
-        layout.addWidget(QLabel("接口地址 (Base URL)"))
-        base_url_edit = QLineEdit(settings.get_llm_base_url())
-        base_url_edit.setPlaceholderText("例如 https://api.openai.com/v1 或 https://api.siliconflow.cn/v1")
-        layout.addWidget(base_url_edit)
-
-        # API Key
-        layout.addWidget(QLabel("API Key"))
-        key_edit = QLineEdit(settings.get_llm_key())
-        key_edit.setEchoMode(QLineEdit.EchoMode.Password)
-        key_edit.setPlaceholderText("sk-...")
-        layout.addWidget(key_edit)
-
-        # 模型名（下拉框 + 刷新按钮）
-        model_row = QHBoxLayout()
-        model_row.addWidget(QLabel("模型"))
-        self._llm_model_combo = QComboBox()
-        self._llm_model_combo.setEditable(True)
-        current_model = settings.get_llm_model()
-        if current_model:
-            self._llm_model_combo.addItem(current_model)
-        model_row.addWidget(self._llm_model_combo, 1)
-        refresh_btn = QPushButton("刷新模型")
-        refresh_btn.clicked.connect(
-            lambda: self._refresh_llm_models(base_url_edit.text().strip(),
-                                             key_edit.text().strip(), service_combo.currentData())
-        )
-        model_row.addWidget(refresh_btn)
-        layout.addLayout(model_row)
-
-        # 提示
-        hint = QLabel("支持任意 OpenAI 兼容服务商（OpenAI、DeepSeek、智谱、硅基流动、本地 Ollama 等）。\n"
-                      "点击「刷新模型」从服务商拉取可用模型列表。")
-        hint.setWordWrap(True)
-        hint.setStyleSheet("color: #888; font-size: 12px;")
-        layout.addWidget(hint)
-
-        def update_service_ui():
-            poptrans = service_combo.currentData() == "poptrans"
-            key_edit.setEnabled(not poptrans)
-            self._llm_model_combo.setEnabled(not poptrans)
-            refresh_btn.setText("检查连接" if poptrans else "刷新模型")
-            hint.setText("PopTrans 地址：http://127.0.0.1:8989/v1。无需 API Key 和模型名。\n"
-                         "仅用于翻译；全文总结和文献问答请使用 OpenAI 兼容模型。" if poptrans else
-                         "支持 OpenAI 兼容服务商。点击「刷新模型」拉取可用模型列表。")
-        service_combo.currentIndexChanged.connect(update_service_ui)
-        update_service_ui()
-
-        # 按钮（Windows 习惯：确定在左、取消在右）
-        btn_row = QHBoxLayout()
-        btn_row.addStretch(1)
-        save_btn = QPushButton("保存")
-        save_btn.clicked.connect(dlg.accept)
-        btn_row.addWidget(save_btn)
-        cancel_btn = QPushButton("取消")
-        cancel_btn.clicked.connect(dlg.reject)
-        btn_row.addWidget(cancel_btn)
-        layout.addLayout(btn_row)
-
-        if dlg.exec():
-            base_url = base_url_edit.text().strip()
-            key = key_edit.text().strip()
-            model = self._llm_model_combo.currentText().strip()
-            settings.save_llm_key(key)
-            base_url = self.translator.llm.normalize_url(base_url)
-            service = service_combo.currentData()
-            settings.save_llm_config(base_url, model, service)
-            self.translator.configure_llm(key, base_url, model, service)
-            self.status.showMessage("大模型设置已保存")
-
-    def _refresh_llm_models(self, base_url: str, api_key: str, service: str = "openai"):
-        """从服务商拉取模型列表并填充下拉框。"""
-        from PyQt6.QtWidgets import QMessageBox
-        if not base_url:
-            QMessageBox.warning(self, "提示", "请先填写接口地址")
-            return
-        try:
-            # 临时用当前输入配置拉取模型
-            # 检查使用独立配置，取消对话框不会改变当前翻译接口。
-            from translator import OpenAICompatTranslator
-            probe = OpenAICompatTranslator(api_key, base_url, service=service)
-            models = probe.list_models()
-            if service == "poptrans":
-                QMessageBox.information(self, "连接成功", "PopTrans 已连接，翻译模型已就绪。")
-                return
-        except Exception as exc:  # noqa: BLE001
-            title = "连接失败" if service == "poptrans" else "拉取失败"
-            action = "无法连接 PopTrans" if service == "poptrans" else "无法获取模型列表"
-            QMessageBox.warning(self, title, f"{action}：\n{exc}")
-            return
-        self._llm_model_combo.clear()
-        for m in models:
-            self._llm_model_combo.addItem(m)
-        self.status.showMessage(f"已获取 {len(models)} 个模型")
+        dialog = ModelSettingsDialog(self, can_change=idle)
+        dialog.activeChanged.connect(apply_active)
+        dialog.exec()
 
     def _update_recent_menu(self):
         """刷新最近打开菜单。"""
@@ -850,6 +756,7 @@ class MainWindow(QMainWindow):
 
         # 全文搜索
         self.search_edit = QLineEdit()
+        self.search_edit.setObjectName("pdfSearch")
         self.search_edit.setPlaceholderText("搜索...")
         self.search_edit.setFixedWidth(160)
         self.search_edit.returnPressed.connect(self._do_search)
@@ -1384,7 +1291,6 @@ class MainWindow(QMainWindow):
         # 翻译结果提示文字颜色
         self._set_result_hint()
         # PDF 阅读区空状态提示 + 页面主题
-        self.viewer.set_empty_style(theme)
         self.viewer.set_theme(theme)
         # 问答窗口跟随主题
         self.chat_window.set_theme(theme)
@@ -1511,341 +1417,16 @@ def main():
     font = QFont("Microsoft YaHei UI", 10)
     app.setFont(font)
     app.setStyleSheet(_APP_STYLE)
-    window = MainWindow()
+    try:
+        from storage_paths import data_dir
+        data_dir()
+        window = MainWindow()
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        QMessageBox.critical(None, "无法初始化便携数据", 
+                             "请将程序放在可写目录，或检查 data 中的配置文件。\n" + str(exc))
+        sys.exit(1)
     window.show()
     sys.exit(app.exec())
-
-
-# 全局样式表：现代简洁风格
-_APP_STYLE = """
-QLabel {
-    color: #333333;
-}
-QMainWindow {
-    background-color: #f5f6fa;
-}
-QFrame#card {
-    background-color: #ffffff;
-    border: 1px solid #e4e6eb;
-    border-radius: 10px;
-}
-QToolBar {
-    background-color: #ffffff;
-    border-bottom: 1px solid #e0e0e0;
-    padding: 4px;
-    spacing: 6px;
-}
-QToolBar QLabel {
-    color: #333333;
-    font-size: 13px;
-    font-weight: 500;
-}
-QToolButton {
-    background-color: #ffffff;
-    border: 1px solid #d0d0d0;
-    border-radius: 4px;
-    padding: 4px 10px;
-    color: #333333;
-    font-size: 13px;
-}
-QToolButton:hover {
-    background-color: #e8f0fe;
-    border-color: #4a90d9;
-}
-QToolButton:disabled {
-    background-color: #f0f0f0;
-    border-color: #e0e0e0;
-    color: #b0b0b0;
-}
-/* 工具栏内的按钮（搜索/上一个/下一个）与 QToolButton 风格统一 */
-QToolBar QPushButton {
-    background-color: #ffffff;
-    border: 1px solid #d0d0d0;
-    border-radius: 4px;
-    padding: 4px 10px;
-    color: #333333;
-    font-size: 13px;
-}
-QToolBar QPushButton:hover {
-    background-color: #e8f0fe;
-    border-color: #4a90d9;
-}
-QToolBar QPushButton:disabled {
-    background-color: #f0f0f0;
-    border-color: #e0e0e0;
-    color: #b0b0b0;
-}
-QMenuBar {
-    background-color: #ffffff;
-    border-bottom: 1px solid #e0e0e0;
-    font-size: 13px;
-}
-QMenuBar::item {
-    padding: 5px 10px;
-    background: transparent;
-}
-QMenuBar::item:selected {
-    background-color: #e8f0fe;
-    border-radius: 4px;
-}
-QMenu {
-    background-color: #ffffff;
-    border: 1px solid #d0d0d0;
-    padding: 4px;
-    font-size: 13px;
-}
-QMenu::item {
-    padding: 6px 24px;
-    border-radius: 4px;
-}
-QMenu::item:selected {
-    background-color: #e8f0fe;
-}
-QPushButton {
-    background-color: #4a90d9;
-    color: #ffffff;
-    border: none;
-    border-radius: 4px;
-    padding: 6px 14px;
-    font-size: 13px;
-}
-QPushButton:hover {
-    background-color: #3a80c9;
-}
-QPushButton:disabled {
-    background-color: #c0c0c0;
-}
-QTextEdit {
-    background-color: #ffffff;
-    border: 1px solid #d0d0d0;
-    border-radius: 8px;
-    padding: 8px;
-    font-size: 14px;
-    color: #222222;
-    selection-background-color: #4a90d9;
-    selection-color: #ffffff;
-}
-QScrollArea {
-    background-color: #e8e8e8;
-    border: none;
-}
-QScrollBar:vertical {
-    background: #f0f0f0;
-    width: 10px;
-    margin: 0;
-}
-QScrollBar::handle:vertical {
-    background: #c0c0c0;
-    border-radius: 5px;
-    min-height: 30px;
-}
-QScrollBar::handle:vertical:hover {
-    background: #a0a0a0;
-}
-QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
-    height: 0;
-}
-QSpinBox, QComboBox {
-    background-color: #ffffff;
-    border: 1px solid #d0d0d0;
-    border-radius: 4px;
-    padding: 3px 6px;
-    min-height: 22px;
-}
-QSlider::groove:horizontal {
-    height: 4px;
-    background: #d0d0d0;
-    border-radius: 2px;
-}
-QSlider::handle:horizontal {
-    background: #4a90d9;
-    width: 14px;
-    margin: -5px 0;
-    border-radius: 7px;
-}
-QStatusBar {
-    background-color: #ffffff;
-    border-top: 1px solid #e0e0e0;
-    color: #666666;
-}
-QSplitter::handle {
-    background-color: #d0d0d0;
-    width: 3px;
-}
-QSplitter::handle:hover {
-    background-color: #4a90d9;
-}
-"""
-
-
-# 夜间模式样式表
-_APP_STYLE_DARK = """
-QLabel {
-    color: #cccccc;
-}
-QMainWindow {
-    background-color: #1e1e1e;
-}
-QFrame#card {
-    background-color: #2d2d2d;
-    border: 1px solid #3a3a3a;
-    border-radius: 10px;
-}
-QToolBar {
-    background-color: #2d2d2d;
-    border-bottom: 1px solid #3a3a3a;
-    padding: 4px;
-    spacing: 6px;
-}
-QToolBar QLabel {
-    color: #cccccc;
-    font-size: 13px;
-    font-weight: 500;
-}
-QToolButton {
-    background-color: #3a3a3a;
-    border: 1px solid #4a4a4a;
-    border-radius: 4px;
-    padding: 4px 10px;
-    color: #cccccc;
-    font-size: 13px;
-}
-QToolButton:hover {
-    background-color: #4a4a4a;
-    border-color: #4a90d9;
-}
-QToolButton:disabled {
-    background-color: #2d2d2d;
-    border-color: #3a3a3a;
-    color: #666666;
-}
-/* 工具栏内的按钮（搜索/上一个/下一个）与 QToolButton 风格统一 */
-QToolBar QPushButton {
-    background-color: #3a3a3a;
-    border: 1px solid #4a4a4a;
-    border-radius: 4px;
-    padding: 4px 10px;
-    color: #cccccc;
-    font-size: 13px;
-}
-QToolBar QPushButton:hover {
-    background-color: #4a4a4a;
-    border-color: #4a90d9;
-}
-QToolBar QPushButton:disabled {
-    background-color: #2d2d2d;
-    border-color: #3a3a3a;
-    color: #666666;
-}
-QMenuBar {
-    background-color: #2d2d2d;
-    border-bottom: 1px solid #3a3a3a;
-    font-size: 13px;
-}
-QMenuBar::item {
-    padding: 5px 10px;
-    background: transparent;
-    color: #cccccc;
-}
-QMenuBar::item:selected {
-    background-color: #4a4a4a;
-    border-radius: 4px;
-}
-QMenu {
-    background-color: #2d2d2d;
-    border: 1px solid #4a4a4a;
-    padding: 4px;
-    font-size: 13px;
-    color: #cccccc;
-}
-QMenu::item {
-    padding: 6px 24px;
-    border-radius: 4px;
-}
-QMenu::item:selected {
-    background-color: #4a4a4a;
-}
-QPushButton {
-    background-color: #4a90d9;
-    color: #ffffff;
-    border: none;
-    border-radius: 4px;
-    padding: 6px 14px;
-    font-size: 13px;
-}
-QPushButton:hover {
-    background-color: #3a80c9;
-}
-QPushButton:disabled {
-    background-color: #555555;
-}
-QTextEdit {
-    background-color: #252526;
-    border: 1px solid #3a3a3a;
-    border-radius: 8px;
-    padding: 8px;
-    font-size: 14px;
-    color: #dddddd;
-    selection-background-color: #4a90d9;
-    selection-color: #ffffff;
-}
-QScrollArea {
-    background-color: #2b2b2b;
-    border: none;
-}
-QScrollBar:vertical {
-    background: #2d2d2d;
-    width: 10px;
-    margin: 0;
-}
-QScrollBar::handle:vertical {
-    background: #555555;
-    border-radius: 5px;
-    min-height: 30px;
-}
-QScrollBar::handle:vertical:hover {
-    background: #666666;
-}
-QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
-    height: 0;
-}
-QSpinBox, QComboBox {
-    background-color: #3a3a3a;
-    border: 1px solid #4a4a4a;
-    border-radius: 4px;
-    padding: 3px 6px;
-    min-height: 22px;
-    color: #cccccc;
-}
-QComboBox QAbstractItemView {
-    background-color: #2d2d2d;
-    color: #cccccc;
-    selection-background-color: #4a4a4a;
-}
-QSlider::groove:horizontal {
-    height: 4px;
-    background: #4a4a4a;
-    border-radius: 2px;
-}
-QSlider::handle:horizontal {
-    background: #4a90d9;
-    width: 14px;
-    margin: -5px 0;
-    border-radius: 7px;
-}
-QStatusBar {
-    background-color: #2d2d2d;
-    border-top: 1px solid #3a3a3a;
-    color: #999999;
-}
-QSplitter::handle {
-    background-color: #3a3a3a;
-    width: 3px;
-}
-QSplitter::handle:hover {
-    background-color: #4a90d9;
-}
-"""
 
 
 if __name__ == "__main__":

@@ -24,7 +24,10 @@ class InternalLinkTests(unittest.TestCase):
         cls.app = QApplication.instance() or QApplication([])
 
     def test_linked_and_plain_documents_can_be_loaded_consecutively(self):
-        with tempfile.TemporaryDirectory(dir=TEST_HOME) as tmp, patch.object(settings, "get_llm_key", return_value=""), patch.object(QMessageBox, "critical", side_effect=AssertionError("PDF load failed")):
+        with tempfile.TemporaryDirectory(dir=TEST_HOME) as tmp, \
+             patch.object(settings, "_config_dir", return_value=tmp), \
+             patch.object(settings, "get_llm_key", return_value=""), \
+             patch.object(QMessageBox, "critical", side_effect=AssertionError("PDF load failed")):
             linked = Path(tmp) / "linked.pdf"
             plain = Path(tmp) / "plain.pdf"
             doc = pymupdf.open()

@@ -4,7 +4,7 @@
 
 # PDF 阅读翻译器 / PDF Reader & Translator
 
-**本 fork 版本 / Fork version: 0.1.2** — [修改记录 / Changelog](CHANGELOG.md)
+**本 fork 版本 / Fork version: 0.2.0** — [修改记录 / Changelog](CHANGELOG.md)
 
 > Windows 便携版及校验文件通过 [本 fork 的 Releases](https://github.com/hulluacen/PDF-AI-Viewer/releases/latest) 发布；仓库仅维护源码、测试、打包配置与文档。
 > Windows builds and checksums are published through this fork’s Releases. The repository keeps source, tests, packaging configuration and documentation.
@@ -65,7 +65,7 @@ Double-click an English word or drag to select a character range across lines. C
 
 **Windows 用户：下载这一个文件，双击即用。不需要装 Python，不需要配环境。**
 
-1. 下载 `PDF-AI-Viewer-v0.1.2-windows-x64.exe`（约 64.75 MB，免安装便携版）
+1. 下载 `PDF-AI-Viewer-v0.2.0-windows-x64.exe`（约 62 MB，免安装便携版）
 2. 双击打开，把 PDF 拖进窗口
 3. 刷选文本点「翻译」即可 —— **微软 Edge / MyMemory 引擎无需任何 API Key，开箱即用**
 4. 只有想用「大模型翻译 / 全文总结 / AI 问答」时，才需要在「设置 → 大模型设置」填一次 Key
@@ -77,7 +77,7 @@ Double-click an English word or drag to select a character range across lines. C
 
 **Windows users: download one file and double-click it. No Python, no environment setup.**
 
-1. Download `PDF-AI-Viewer-v0.1.2-windows-x64.exe` (~64.75 MB, portable build)
+1. Download `PDF-AI-Viewer-v0.2.0-windows-x64.exe` (~62 MB, portable build)
 2. Double-click it and drag a PDF into the window
 3. Select text and click "Translate" — the **Microsoft Edge / MyMemory engines need no API key at all**
 4. A key is only required for LLM translation / summary / AI chat, configured once under "Settings → LLM Settings"
@@ -130,7 +130,7 @@ select-to-translate → full-document summary → ask the paper → notes writte
 - 🎯 **浮动翻译按钮**：刷选文本后，翻译按钮自动出现在鼠标附近，点击即可翻译，无需移动鼠标
 - 🌐 **多翻译引擎**：内置微软 Edge、通用 OpenAI 兼容大模型、MyMemory 三个接口，可自动回退或手动选择
 - 🤖 **全文总结**：对整篇论文调用大模型生成结构化总结（背景、方法、数据、结论、优缺点、后续方向），流式输出实时显示，独立可缩放窗口，支持 Markdown 渲染与公式显示
-- 💬 **边读边问（AI 问答）**：阅读时随时呼出独立对话窗口，用同一套大模型配置多轮提问，每次提问自动附带整篇文献作上下文（同 Chatbox 附加文件）；问答自动追加到与 PDF 同目录同名的 `.md` 笔记（`A.pdf` → `A.md`），重开文献即恢复历史；支持流式输出、随时中断、字号调节、夜间主题，可一键用系统默认程序打开笔记
+- 💬 **边读边问（AI 问答）**：阅读时随时呼出独立对话窗口，用当前启用的大模型配置多轮提问，每次提问自动附带整篇文献作上下文（同 Chatbox 附加文件）；问答自动追加到程序目录 `data/chatnotes/` 的 Markdown 笔记，重开文献即恢复历史；支持流式输出、随时中断、字号调节、夜间主题，可一键用系统默认程序打开笔记
 - 🔍 **全文搜索**：关键词全文搜索，结果黄色高亮并自动垂直居中定位，支持上一个/下一个循环跳转
 - 📂 **拖拽打开**：直接把 PDF 文件拖到窗口即可打开
 - 🖥️ **窗口状态记忆**：记住上次关闭时的窗口大小、位置与最大化状态
@@ -151,7 +151,7 @@ select-to-translate → full-document summary → ask the paper → notes writte
 - 🎯 **Floating translate button**: appears near the mouse after selecting text; click to translate without moving the mouse
 - 🌐 **Multiple translation engines**: built-in Microsoft Edge, generic OpenAI-compatible LLM, and MyMemory, with auto-fallback or manual selection
 - 🤖 **Full-document summary**: summarizes the entire paper via LLM (background, methods, data, findings, pros/cons, future work) with streaming output, shown in a resizable standalone window with Markdown rendering and formula display
-- 💬 **Ask while reading (AI chat)**: summon a standalone chat window anytime and ask multi-turn questions using the same LLM configuration, with the whole document automatically attached as context (like attaching a file in Chatbox); every Q&A is appended to a Markdown note next to the PDF (`A.pdf` → `A.md`), history is restored when you reopen the file; answers stream in, can be interrupted, with adjustable font size, dark theme and one-click "open note" in your system editor
+- 💬 **Ask while reading (AI chat)**: summon a standalone chat window anytime and ask multi-turn questions using the same LLM configuration, with the whole document automatically attached as context (like attaching a file in Chatbox); every Q&A is appended to a Markdown note under `data/chatnotes/` beside the application, history is restored when you reopen the file; answers stream in, can be interrupted, with adjustable font size, dark theme and one-click "open note" in your system editor
 - 🔍 **Full-text search**: keyword search across the whole document, results highlighted in yellow and auto-centered vertically, with prev/next cyclic navigation
 - 📂 **Drag & drop**: drag a PDF file onto the window to open it
 - 🖥️ **Window state memory**: remembers window size, position, and maximized state from the last session
@@ -177,9 +177,9 @@ select-to-translate → full-document summary → ask the paper → notes writte
 6. 缩放：工具栏选择适合页面 / 适合宽度 / 百分比，或按住 `Ctrl` 滚动鼠标滚轮快速缩放
 7. 点击工具栏「全文总结」对整篇论文生成总结，结果在独立窗口中流式显示
 8. 点击工具栏「AI 问答」或按 `Ctrl + Shift + Q` 呼出问答窗口，边读边提问；`Enter` 发送，`Shift + Enter` 换行，回答期间按钮变「停止」可随时中断
-9. 问答会自动写入与 PDF 同目录同名的 `.md` 文件，可随时点「打开笔记」用系统默认程序查看/编辑
+9. 问答会自动写入程序目录 `data/chatnotes/` 的 `.md` 文件，可随时点「打开笔记」用系统默认程序查看/编辑
 10. 在工具栏搜索框输入关键词回车，即可全文搜索并高亮定位，支持「上一个 / 下一个」跳转
-11. 首次使用大模型翻译或总结前，请到「设置 → 大模型设置」填写接口地址、API Key 和模型名（AI 问答使用同一套配置）
+11. 首次使用大模型翻译或总结前，请到「设置 → 大模型设置」新增独立配置，填写接口地址、API Key 和模型名，再点击启用（AI 问答使用当前启用配置）
 12. 夜间阅读可到「设置 → 主题」切换夜间模式，PDF 页面会自动反色，问答窗口同步切换
 13. 若 PDF 自带内部链接，点击正文中的参考文献引用（如 [1]）可直接跳转到文末对应条目
 14. 关闭程序后，下次打开同一 PDF 会自动跳转到上次阅读位置，并恢复窗口与问答窗口状态
@@ -194,9 +194,9 @@ select-to-translate → full-document summary → ask the paper → notes writte
 6. Zoom: choose Fit Page / Fit Width / Percentage in the toolbar, or hold `Ctrl` and scroll the mouse wheel for quick zoom
 7. Click "Full-document Summary" in the toolbar to summarize the entire paper; the result streams into a standalone window
 8. Click "AI Chat" in the toolbar or press `Ctrl + Shift + Q` to open the chat window and ask questions while reading; `Enter` sends, `Shift + Enter` inserts a line break, and the button turns into "Stop" so you can interrupt an answer
-9. Each exchange is written automatically into a `.md` file in the same folder as the PDF; click "Open Note" to view/edit it with your default editor
+9. Each exchange is written automatically into a `.md` file under the application's `data/chatnotes/` folder; click "Open Note" to view/edit it with your default editor
 10. Type a keyword in the toolbar search box and press Enter to search the whole document with highlighted, centered results; use "Prev / Next" to navigate
-11. Before using LLM translation or summary for the first time, configure the base URL, API key, and model under "Settings → LLM Settings" (the AI chat reuses the same configuration)
+11. Before using LLM translation or summary for the first time, add a profile with its base URL, API key and model under "Settings → LLM Settings", then activate it (AI chat uses the active profile)
 12. For night reading, switch to dark mode under "Settings → Theme"; PDF pages are inverted and the chat window follows the theme
 13. If the PDF has internal links, click an in-text reference citation (e.g. [1]) to jump directly to the corresponding entry at the end of the document
 14. After closing, reopening the same PDF resumes at your last reading position and restores both window states
@@ -225,7 +225,7 @@ This software supports any **OpenAI-compatible** LLM endpoint. You choose the pr
 
 - 回答流式显示，右侧蓝色气泡是你的问题，左侧卡片是 AI 回答（支持 Markdown）
 - 每次提问会自动把**整篇文献的全文**（约 6 万字符内）随问题一起发给模型，相当于 Chatbox 里附加文件，所以可以直接问「这篇论文的创新点是什么」；扫描件等提取不出文本的 PDF 则不带文献，退回普通对话
-- 每一轮问答都会**自动追加**到与 PDF 同目录、同名的 `.md` 文件：`A.pdf` → `A.md`
+- 每一轮问答都会**自动追加**到程序目录 `data/chatnotes/` 的 Markdown 文件，文件名包含路径摘要以区分同名 PDF
 - 重新打开这份文献时，历史问答会自动读回，可以接着聊；问模型时只带最近的对话作为上下文
 - `.md` 就是你自己的学习笔记，可以用任意编辑器继续修改、补充
 
@@ -233,7 +233,7 @@ After opening a PDF, click "AI Chat" in the toolbar or press `Ctrl + Shift + Q` 
 
 - Answers stream in; your question is the blue bubble on the right, the AI answer is the card on the left (Markdown supported)
 - Every question automatically carries the **full text of the document** (up to ~60k characters) alongside it — the same as attaching a file in Chatbox — so you can directly ask "what are this paper's contributions"; scanned PDFs with no extractable text fall back to plain conversation
-- Every exchange is **appended automatically** to a `.md` file in the same folder with the same base name: `A.pdf` → `A.md`
+- Every exchange is **appended automatically** under the application's `data/chatnotes/` folder, with a path identifier to separate PDFs with the same filename
 - Reopening the document reloads your history so you can continue the conversation; only recent turns are sent as context
 - The `.md` file is your own study note — edit and annotate it in any editor
 
@@ -252,9 +252,9 @@ After opening a PDF, click "AI Chat" in the toolbar or press `Ctrl + Shift + Q` 
 ---
 ```
 
-若 PDF 所在目录不可写（只读光盘、被其他程序占用等），本次问答会改存到 `~/.pdftranslator/chatnotes/` 并在窗口内提示，内容不会丢。
+笔记统一保存在便携数据目录；首次使用某个 PDF 时复制导入旧的同目录笔记，保留原件。程序目录必须可写，写入失败会明确提示。
 
-If the PDF's folder is not writable (read-only media, file locked by another program, etc.), that exchange is saved to `~/.pdftranslator/chatnotes/` instead and the window tells you — nothing gets lost.
+Notes are stored in the portable data directory. Legacy sidecar notes are copied on first access, with originals preserved. The application directory must be writable; write failures are reported.
 
 ---
 
@@ -263,10 +263,10 @@ If the PDF's folder is not writable (read-only media, file locked by another pro
 | 问题 | 回答 |
 | --- | --- |
 | 免费吗？会不会有广告、会员、次数限制？ | 完全免费开源（MIT），无广告、无会员、不限次数 |
-| 一定要填 API Key 才能用吗？ | 不需要。划词翻译选「微软 Edge / MyMemory」开箱即用；只有 AI 总结、AI 问答、大模型翻译需要 Key |
+| 一定要填 API Key 才能用吗？ | 不需要。划词翻译选「微软 Edge / MyMemory」开箱即用；云端大模型通常需要 Key；PopTrans 和无鉴权回环接口无需 Key |
 | 我的 API Key 安全吗？ | Key 只存在本机的 Windows 凭据管理器中，不写进配置文件、不上传、不发送到除服务商以外的任何地方 |
 | AI 会把我的论文传到云上吗？ | 只有在你使用大模型相关功能时，文本才会按你填的接口地址发给对应服务商；纯翻译用 Edge / MyMemory 走各自的公开接口 |
-| 有 exe 还要装 Python 吗？ | 不用，从 Releases 下载的 exe 双击即用，配置也只写在用户目录 |
+| 有 exe 还要装 Python 吗？ | 不用，从 Releases 下载的 exe 双击即用，设置、阅读记录和笔记保存到 exe 旁的 `data/`；密钥仍在系统凭据管理器 |
 | 支持 macOS / Linux 吗？ | 目前只提供 Windows 版。核心是 Python + PyQt6，跨平台移植门槛不高，欢迎提 Issue / PR |
 | 几百页的论文会卡吗？ | 页面按需渲染，滚动大文件依然流畅 |
 | 扫描版 PDF（纯图片）能用吗？ | 翻译与总结依赖可提取的文本；提取不出文本时 AI 问答会自动退回普通对话（软件本身暂不含 OCR） |
@@ -278,7 +278,7 @@ If the PDF's folder is not writable (read-only media, file locked by another pro
 | Do I need an API key to use it? | No. Select-to-translate works out of the box with Microsoft Edge / MyMemory; a key is only needed for LLM translation, summary and AI chat |
 | Is my API key safe? | It is stored only in your local Windows Credential Manager — never in a config file, never uploaded anywhere except to the provider you configured |
 | Does the AI upload my paper to the cloud? | Only when you use LLM features, and only to the provider endpoint you typed in |
-| Do I need Python if there is an exe? | No — the executable downloaded from Releases just runs; settings are kept in your user folder |
+| Do I need Python if there is an exe? | No — the executable downloaded from Releases just runs; settings, reading records and notes are kept in data beside the executable; keys stay in Windows Credential Manager |
 | macOS / Linux support? | Windows-only for now. The core is Python + PyQt6, so a port is not far off — Issues and PRs welcome |
 | Will a 500-page paper lag? | Pages render on demand, so scrolling large files stays smooth |
 | What about scanned (image-only) PDFs? | Translation and summary rely on extractable text; if there is none, AI chat falls back to plain conversation (the app has no built-in OCR yet) |
@@ -339,9 +339,13 @@ pdf_translator/
 ├── pdf_viewer.py    # PDF 阅读器：按需渲染、刷选、缩放、链接点击
 ├── translator.py    # 翻译引擎：Edge / OpenAI 兼容大模型 / MyMemory，流式总结与多轮对话
 ├── chat_window.py   # AI 阅读问答：浮动对话窗口（气泡渲染、流式显示、字号与主题）
-├── chat_log.py      # 问答记录读写：与 PDF 同目录同名的 .md 笔记
+├── chat_log.py      # 便携 Markdown 笔记与旧笔记导入
 ├── latex_fallback.py# LaTeX 公式 → Unicode 兜底转换（总结与问答共用）
-├── settings.py      # 配置存储：阅读位置、最近历史、界面设置、大模型配置
+├── settings.py      # 便携配置存储与兼容接口
+├── storage_paths.py # 统一数据路径及旧数据迁移
+├── model_profiles.py# 独立模型配置与凭据管理
+├── model_settings_dialog.py # 模型配置窗口与后台连接测试
+├── theme.py         # 日间和夜间样式
 ├── make_logo.py     # Logo 生成脚本
 ├── requirements.txt # 依赖清单
 ├── AGENTS.md        # 给 AI 助手/开发者的工程说明与约定
@@ -400,11 +404,27 @@ Fix opening PDFs with internal table-of-contents or reference links by convertin
 
 PDF 渲染已支持屏幕像素倍率，150%/200% 缩放时保持页面和文字清晰，选择与链接坐标仍使用逻辑像素。
 
-使用 PopTrans：在「设置 → 大模型设置」选择「PopTrans 本地翻译」，地址填写 `http://127.0.0.1:8989/v1`（也接受完整聊天接口地址）。无需 API Key 或模型名，点击「检查连接」确认模型已就绪。保存后在主窗口选择「大模型」翻译引擎。此模式用于翻译；总结和问答须切回 OpenAI 兼容模型。回环请求绕过代理。如果后台空闲退出，需要先在 PopTrans 中触发一次翻译，再重试。
+使用 PopTrans：在「设置 → 大模型设置」选择「PopTrans 本地翻译」，地址填写 `http://127.0.0.1:8989/v1`（也接受完整聊天接口地址）。无需 API Key 或模型名，点击「检查连接」确认模型已就绪。保存并启用后在主窗口选择「大模型」翻译引擎。此模式用于翻译；总结和问答须切回 OpenAI 兼容模型。回环请求绕过代理。如果后台空闲退出，需要先在 PopTrans 中触发一次翻译，再重试。
 
-PDF rendering now accounts for screen pixel density without changing selection or link coordinates. For PopTrans, choose the PopTrans service type in LLM settings, enter `http://127.0.0.1:8989/v1`, check the connection, save, and select the LLM translation engine. API key and model name are optional in this mode. Summaries and document chat require an OpenAI-compatible model. Loopback requests bypass proxies. If the PopTrans backend has exited while idle, trigger a translation in PopTrans before retrying.
+PDF rendering now accounts for screen pixel density without changing selection or link coordinates. For PopTrans, choose the PopTrans service type in LLM settings, enter `http://127.0.0.1:8989/v1`, check the connection, save and activate the profile, and select the LLM translation engine. API key and model name are not used in this mode. Summaries and document chat require an OpenAI-compatible model. Loopback requests bypass proxies. If the PopTrans backend has exited while idle, trigger a translation in PopTrans before retrying.
 
 ## 上游 / Upstream
 
 本 fork 基于 [fangvv/PDF-AI-Viewer](https://github.com/fangvv/PDF-AI-Viewer)，保留原项目 MIT 许可证。
 This fork is based on fangvv/PDF-AI-Viewer and retains the original MIT license.
+
+
+## 便携数据与独立模型配置（0.2.0） / Portable data and model profiles (0.2.0)
+
+- 设置、最近文件、阅读位置及问答笔记统一位于 exe 旁的 `data/`；源码运行则位于项目目录的 `data/`。不依赖启动工作目录或 PyInstaller 临时解压目录。
+- 首次启动复制迁移 `~/.pdftranslator/` 的设置、阅读记录及旧回退笔记，保留原文件，不覆盖已有便携数据。PDF 同目录旧笔记在首次访问时复制导入。
+- 程序目录内 PDF 的新阅读记录使用相对路径，整体搬动便携文件夹后仍可使用；目录外 PDF 保留绝对路径。
+- 「设置 → 大模型设置」左侧列出独立配置；每份配置分别保存接口类型、地址、模型和密钥，支持新增、重命名（修改配置名称）、删除、获取模型和检查连接。
+- 点击列表只查看，保存非启用配置不会切换；点击「启用此配置」保存并切换，始终只有一个启用配置。正在翻译、总结或问答时，禁止修改当前启用配置。
+- 检查连接使用后台独立客户端；OpenAI 兼容配置发送简短请求验证选定模型，PopTrans 检查 `/health`。PopTrans 不发送密钥或模型名，只支持翻译。
+- API Key 按配置独立存入 Windows 凭据管理器，不写入 JSON。拷贝便携文件夹到另一台电脑后需要重新填写密钥。
+- 在模型设置中点击「打开数据目录」即可定位数据；便携目录必须可写，不会静默回退到用户目录。
+
+Settings, recent files, reading positions and chat notes are stored in `data/` beside the executable (beside the source files when running Python). Legacy user data is copied without removing originals or overwriting existing portable files. Existing PDF sidecar notes are imported on first access. New records for PDFs inside the application folder use relative paths.
+
+The model settings dialog uses a vertical profile list. Each profile has its own URL, model, service type and credential. Selecting or saving an inactive profile does not activate it; the activation button saves and switches the single active profile. Connection checks run in a background thread with a separate client and verify the selected model. PopTrans uses its health endpoint and supports translation only. Keys remain in Windows Credential Manager and must be entered again on another computer. Use “Open data folder” to locate portable files. Version 0.2.0 is portable and does not include an installer.

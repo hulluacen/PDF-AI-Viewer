@@ -1,7 +1,7 @@
 """阅读问答记录（Markdown）的读写。
 
-问答内容写到与 PDF **同目录同名**的 .md 文件（A.pdf → A.md）：
-既是人能直接阅读编辑的学习笔记，也是软件重新打开后接着聊的历史来源。
+问答内容统一写到 data/chatnotes，路径摘要区分同名 PDF。
+旧的 PDF 同目录笔记与旧回退笔记会复制导入，原件保留。
 
 文件格式（每条问答以带序号的标题开头，便于逐条解析回来）::
 
@@ -22,6 +22,9 @@
 import datetime
 import os
 import re
+import hashlib
+from pathlib import Path
+from storage_paths import _copy_missing, application_dir
 
 import settings
 
@@ -40,8 +43,21 @@ _META_RE = re.compile(r"^>[ \t]*第[ \t]*(\d+)[ \t]*页[ \t]*·[ \t]*(.+?)[ \t]*
 
 
 def md_path_for(pdf_path: str) -> str:
-    """A.pdf → 同目录下的 A.md。"""
-    return os.path.splitext(pdf_path)[0] + ".md"
+    """Portable notes, with a path identifier to separate same-named PDFs."""
+    absolute = Path(pdf_path).resolve()
+    try:
+        identity = str(absolute.relative_to(application_dir())).replace("\\", "/")
+    except ValueError:
+        identity = os.path.normcase(str(absolute))
+    suffix = hashlib.sha256(identity.encode("utf-8")).hexdigest()[:16]
+    target = Path(settings.chatnotes_dir()) / f"{absolute.stem}-{suffix}.md"
+    if not target.exists():
+        # Import old sidecar / fallback notes once, without changing originals.
+        for old in (absolute.with_suffix(".md"), Path(settings.chatnotes_dir()) / f"{absolute.stem}.md"):
+            if old.is_file():
+                _copy_missing(old, target)
+                break
+    return str(target)
 
 
 def _header(pdf_path: str) -> str:
@@ -64,8 +80,8 @@ def load_chat_log(pdf_path: str):
     - 文件不存在或为空：([], None)；
     - 文件格式被改坏 / 不是本功能写的：([], 原文)，界面按原文展示。
     """
-    path = md_path_for(pdf_path)
     try:
+        path = md_path_for(pdf_path)
         with open(path, "r", encoding="utf-8") as f:
             text = f.read()
     except OSError:
@@ -99,14 +115,16 @@ def load_chat_log(pdf_path: str):
 def append_exchange(pdf_path: str, question: str, answer: str, page: int = 0):
     """追加一轮问答。
 
-    返回 (实际写入路径, 错误信息)。PDF 所在目录不可写时，退回到用户目录下的
-    chatnotes 备份文件，保证问答不会丢失（此时错误信息非空，界面需提示）。
+    返回 (实际写入路径, 错误信息)，无法写入时由界面提示。
     """
     question = " ".join((question or "").split())
     if not question:
         return None, "问题为空，未写入笔记"
     when = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-    lines = [f"## {_next_index(pdf_path)}. 问：{question}\n"]
+    try:
+        lines = [f"## {_next_index(pdf_path)}. 问：{question}\n"]
+    except OSError as exc:
+        return None, f"无法访问便携笔记目录：{exc}"
     if page:
         lines.append(f"> 第 {page} 页 · {when}\n")
     else:
@@ -114,18 +132,12 @@ def append_exchange(pdf_path: str, question: str, answer: str, page: int = 0):
     lines.append(f"\n{_ANSWER_MARK}\n\n{(answer or '').strip()}\n\n---\n\n")
     entry = "".join(lines)
 
-    path = md_path_for(pdf_path)
     try:
+        path = md_path_for(pdf_path)
         _write_entry(path, pdf_path, entry)
         return path, None
     except OSError as exc:
-        # PDF 所在目录只读/被占用 → 退回用户目录，内容不丢
-        fallback = os.path.join(settings.chatnotes_dir(), os.path.basename(path))
-        try:
-            _write_entry(fallback, pdf_path, entry)
-        except OSError as exc2:
-            return None, f"写入问答笔记失败：{exc2}"
-        return fallback, f"PDF 同目录不可写（{exc}），本次问答已改存到：{fallback}"
+        return None, f"写入便携问答笔记失败：{exc}"
 
 
 def _write_entry(path: str, pdf_path: str, entry: str) -> None:

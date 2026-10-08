@@ -389,6 +389,8 @@ class PdfViewer(QScrollArea):
         self.theme = "light"  # 当前主题，新建页面时继承
         self.page_widgets = []
         self._container = QWidget()
+        self._container.setObjectName("pdfPageContainer")
+        self.viewport().setObjectName("pdfReaderViewport")
         self._layout = QVBoxLayout(self._container)
         self._layout.setContentsMargins(0, 0, 0, 0)
         self._layout.setSpacing(4)
@@ -404,6 +406,7 @@ class PdfViewer(QScrollArea):
             "color: #999999; font-size: 16px; background: transparent;"
         )
         self._layout.addWidget(self._empty_label)
+        self.set_empty_style("light")
         # 防抖定时器：滚动停止后渲染可见页
         self._render_timer = QTimer(self)
         self._render_timer.setSingleShot(True)
@@ -525,18 +528,31 @@ class PdfViewer(QScrollArea):
         self.horizontalScrollBar().setEnabled(False)
         # 显示空状态提示
         self._empty_label.show()
+        self._layout.activate()
+        self._container.adjustSize()
         self.pageChanged.emit(1, 1)
 
     def set_empty_style(self, theme: str):
-        """设置空状态提示文字颜色（适配日间/夜间主题）。"""
-        color = "#666666" if theme == "dark" else "#999999"
+        """同步阅读视口、页面容器背景与空状态提示。"""
+        background = "#2b2b2b" if theme == "dark" else "#e8e8e8"
+        self.viewport().setStyleSheet(
+            f"QWidget#pdfReaderViewport {{ background-color: {background}; }}"
+        )
+        self._container.setStyleSheet(
+            f"QWidget#pdfPageContainer {{ background-color: {background}; }}"
+        )
+        color = "#aaaaaa" if theme == "dark" else "#999999"
         self._empty_label.setStyleSheet(
             f"color: {color}; font-size: 16px; background: transparent;"
         )
+        if not self.page_widgets:
+            self._layout.activate()
+            self._container.adjustSize()
 
     def set_theme(self, theme: str):
         """设置主题（light/dark）：对已加载的 PDF 页面重新渲染。"""
         self.theme = theme
+        self.set_empty_style(theme)
         for w in self.page_widgets:
             w.set_theme(theme)
         # 重新渲染当前可见页
