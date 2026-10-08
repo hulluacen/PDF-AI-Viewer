@@ -17,6 +17,7 @@ env/
 /sync-to-fork/
 /release-*/
 /data/
+/修改笔记.md
 
 # IDE / 编辑器
 .idea/

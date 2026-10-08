@@ -161,6 +161,7 @@ pyinstaller --noconfirm "PDF阅读翻译器.spec"
 ## 提交约定
 
 - 提交信息用中文，采用 `fix:` / `feat:` / `build:` / `chore:` 等前缀。
+- `修改笔记.md` 与 `release-development/` 开发笔记仅本地保留，不提交或通过 API 上传；更新同步清单时同样排除。
 - 保留并提交源码、spec、测试、资源和文档；不要提交 exe、构建缓存和同步临时文件。
 - 同步 main 不强制推送；移除当前目录中的旧 exe 不重写已有提交历史。
 
