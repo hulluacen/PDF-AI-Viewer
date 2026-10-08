@@ -196,3 +196,7 @@ load_document_progress 回调返回 False 表示取消，返回 None 表示未�
 ## 字符精确选择（未发布）
 
 PdfPageWidget 按需缓存 rawdict 字符与阅读行，用起止插入位置选择连续范围，避免相交 span 整段选择；坐标应用页面 rotation_matrix，绘制使用 zoom 逻辑像素。双击按同一行的单词边界选择，词内撇号/连字符连接两侧字母；中文按字符。选区保存在 _selected_chars，释放鼠标后仍可 Ctrl+C/右键复制。既有翻译及链接信号保留；空选区隐藏浮动按钮。运行 tests/test_word_selection.py 检查实际鼠标与复制操作。搜索逻辑和 v0.1.1 附件未改动，后续 Release 另行确认版本与附件上传。
+
+## 夜间标签颜色（未发布）
+
+_APP_STYLE 与 _APP_STYLE_DARK 分别为普通 QLabel 指定 #333333 与 #cccccc，避免控制卡片标签沿用系统黑色。只覆盖工具栏标签无法覆盖右侧 QLabel；局部显式颜色仍优先。用户已确认选词与搜索问题结案，搜索函数未修改。

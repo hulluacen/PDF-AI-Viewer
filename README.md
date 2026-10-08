@@ -39,7 +39,7 @@ Toggle the Bookmarks button to show the PDF’s embedded outline and navigate it
 
 ## 精确选词（源码新增，尚未发布）/ Precise selection (source only)
 
-双击英文单词可选中整个词，拖动可选择部分字符、单词或跨行内容；中文可按字符选取。选中后可用 Ctrl+C 或右键「复制」，也可点击原有浮动翻译按钮。该改动尚未替换 v0.1.1 Release；搜索 BUG 本轮未修复。没有文字层的扫描页无法直接选词。
+双击英文单词可选中整个词，拖动可选择部分字符、单词或跨行内容；中文可按字符选取。选中后可用 Ctrl+C 或右键「复制」，也可点击原有浮动翻译按钮。该改动尚未替换 v0.1.1 Release；搜索处理函数未修改，用户已确认选词修复后搜索也恢复。普通标签已补齐夜间浅色文字。没有文字层的扫描页无法直接选词。
 
 Double-click an English word or drag to select a character range across lines. Copy using Ctrl+C or the context menu, or use the existing translation button. These changes are in source only; v0.1.1 remains unchanged. Image-only pages require a text layer.
 

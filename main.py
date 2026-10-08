@@ -1518,6 +1518,9 @@ def main():
 
 # 全局样式表：现代简洁风格
 _APP_STYLE = """
+QLabel {
+    color: #333333;
+}
 QMainWindow {
     background-color: #f5f6fa;
 }
@@ -1677,6 +1680,9 @@ QSplitter::handle:hover {
 
 # 夜间模式样式表
 _APP_STYLE_DARK = """
+QLabel {
+    color: #cccccc;
+}
 QMainWindow {
     background-color: #1e1e1e;
 }
