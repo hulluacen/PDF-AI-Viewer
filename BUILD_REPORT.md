@@ -90,3 +90,7 @@ https://github.com/hulluacen/PDF-AI-Viewer/releases/tag/v0.1.0
 产物 dist-release-0.1.1/PDF-AI-Viewer-v0.1.1-windows-x64.exe：64,751,908 字节；SHA-256：`6b718265de6759791e72308041c6d026e9ee295c77f07b8149fd8e71045cc33d`。原 spec、隔离构建 PATH；版本 0.1.1。最终 exe 提取应用模块运行 7 项检查通过（含三种缩放模式连续打开 18 次的可见区域和实际视口像素、首/中/末页取消、原文档保留、书签和缩放）。关于窗口确认为 0.1.1。仅 Windows 系统 PATH 下离屏启动 6 秒、配置初始化成功、stderr 为空。用户已确认此前相同功能本地版基本可用。
 
 独立 v0.1.1 Release 发布 exe 与 SHA256SUMS.txt；保留 v0.1.0 tag 与附件，main 不提交构建产物。搜索 BUG 和单词精确选择未改动。
+
+## 0.1.2 发布构建
+
+PDF-AI-Viewer-v0.1.2-windows-x64.exe：64,756,171 字节；SHA-256：`b0539969906907ad4ac983f33fafa1ebd0e092dca284ecbc81b5304ef1e36ba6`。最终应用模块 150% DPR 下 14 项选词/复制/加载/显示回归通过；日夜切换标签和特殊颜色检查通过，关于版本确认为 0.1.2。独立系统 PATH 离屏启动 6 秒、初始化成功、stderr 为空。验证记录仅在工程报告与本地元数据保存，Release 正文只写新增和修复。

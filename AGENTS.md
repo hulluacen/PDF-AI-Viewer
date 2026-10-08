@@ -177,7 +177,7 @@ pyinstaller --noconfirm "PDF阅读翻译器.spec"
 
 ## 本 fork 的版本与发布约定
 
-version.py 是版本唯一来源，main.py 关于窗口及 QApplication 读取此版本。当前版本为 0.1.1，发布目标 https://github.com/hulluacen/PDF-AI-Viewer/releases/tag/v0.1.1 。main 不跟踪 dist；历史 v0.1.0 tag 与附件保留。
+version.py 是版本唯一来源，main.py 关于窗口及 QApplication 读取此版本。当前版本为 0.1.2，发布目标 https://github.com/hulluacen/PDF-AI-Viewer/releases/tag/v0.1.2 。main 不跟踪 dist；历史 v0.1.0 tag 与附件保留。
 
 ## 0.1.1 阅读控件
 
@@ -193,10 +193,14 @@ load_document_progress 回调返回 False 表示取消，返回 None 表示未�
 
 - 隐藏 staging 中的页面移交到阅读布局后，必须显式 show，再激活布局并 adjustSize；仅验证 page_widgets/渲染标志不能证明页面显示。test_load_cancel 检查重复打开后的容器尺寸、visibleRegion 和实际视口白色页面像素。
 
-## 字符精确选择（未发布）
+## 0.1.2 字符精确选择
 
 PdfPageWidget 按需缓存 rawdict 字符与阅读行，用起止插入位置选择连续范围，避免相交 span 整段选择；坐标应用页面 rotation_matrix，绘制使用 zoom 逻辑像素。双击按同一行的单词边界选择，词内撇号/连字符连接两侧字母；中文按字符。选区保存在 _selected_chars，释放鼠标后仍可 Ctrl+C/右键复制。既有翻译及链接信号保留；空选区隐藏浮动按钮。运行 tests/test_word_selection.py 检查实际鼠标与复制操作。搜索逻辑和 v0.1.1 附件未改动，后续 Release 另行确认版本与附件上传。
 
-## 夜间标签颜色（未发布）
+## 0.1.2 夜间标签颜色
 
 _APP_STYLE 与 _APP_STYLE_DARK 分别为普通 QLabel 指定 #333333 与 #cccccc，避免控制卡片标签沿用系统黑色。只覆盖工具栏标签无法覆盖右侧 QLabel；局部显式颜色仍优先。用户已确认选词与搜索问题结案，搜索函数未修改。
+
+## 0.1.2 发布说明约定
+
+用户确认选词、相关搜索表现和夜间标签可用。版本来源 version.py=0.1.2；Release 说明只写新增和修复，不写测试、验证或构建信息。构建验证保存在 BUILD_REPORT 与本地记录；保留旧 tag/附件，exe 不进入 main，大型附件上传遵守当次说明与确认要求。

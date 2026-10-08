@@ -4,7 +4,7 @@
 
 # PDF 阅读翻译器 / PDF Reader & Translator
 
-**本 fork 版本 / Fork version: 0.1.1** — [修改记录 / Changelog](CHANGELOG.md)
+**本 fork 版本 / Fork version: 0.1.2** — [修改记录 / Changelog](CHANGELOG.md)
 
 > Windows 便携版及校验文件通过 [本 fork 的 Releases](https://github.com/hulluacen/PDF-AI-Viewer/releases/latest) 发布；仓库仅维护源码、测试、打包配置与文档。
 > Windows builds and checksums are published through this fork’s Releases. The repository keeps source, tests, packaging configuration and documentation.
@@ -37,11 +37,11 @@ A desktop PDF reader with select-to-translate, AI full-document summary and ask-
 
 Toggle the Bookmarks button to show the PDF’s embedded outline and navigate its hierarchy. The toolbar places zoom after page navigation and before search, providing −/+ buttons and an editable 10%–500% field synchronized with the slider, fit modes and Ctrl+wheel. About includes this fork’s link and keeps the original author information. Version 0.1.1 includes these additions, cancellable loading and the blank-view fix. The v0.1.0 tag and assets are preserved.
 
-## 精确选词（源码新增，尚未发布）/ Precise selection (source only)
+## 精确选词与夜间文字（0.1.2）/ Precise selection and dark labels (0.1.2)
 
-双击英文单词可选中整个词，拖动可选择部分字符、单词或跨行内容；中文可按字符选取。选中后可用 Ctrl+C 或右键「复制」，也可点击原有浮动翻译按钮。该改动尚未替换 v0.1.1 Release；搜索处理函数未修改，用户已确认选词修复后搜索也恢复。普通标签已补齐夜间浅色文字。没有文字层的扫描页无法直接选词。
+双击英文单词可选中整个词，拖动可选择部分字符、单词或跨行内容；中文可按字符选取。选中后可用 Ctrl+C 或右键「复制」，也可点击原有浮动翻译按钮。0.1.2 包含这些改动；搜索处理函数未修改，用户已确认选词修复后搜索也恢复。普通标签已补齐夜间浅色文字。没有文字层的扫描页无法直接选词。
 
-Double-click an English word or drag to select a character range across lines. Copy using Ctrl+C or the context menu, or use the existing translation button. These changes are in source only; v0.1.1 remains unchanged. Image-only pages require a text layer.
+Double-click an English word or drag to select a character range across lines. Copy using Ctrl+C or the context menu, or use the existing translation button. Version 0.1.2 includes these changes and readable label colors in dark mode. Image-only pages require a text layer.
 
 ## 📖 目录 / Table of Contents
 
@@ -65,7 +65,7 @@ Double-click an English word or drag to select a character range across lines. C
 
 **Windows 用户：下载这一个文件，双击即用。不需要装 Python，不需要配环境。**
 
-1. 下载 `PDF-AI-Viewer-v0.1.1-windows-x64.exe`（约 64.75 MB，免安装便携版）
+1. 下载 `PDF-AI-Viewer-v0.1.2-windows-x64.exe`（约 64.75 MB，免安装便携版）
 2. 双击打开，把 PDF 拖进窗口
 3. 刷选文本点「翻译」即可 —— **微软 Edge / MyMemory 引擎无需任何 API Key，开箱即用**
 4. 只有想用「大模型翻译 / 全文总结 / AI 问答」时，才需要在「设置 → 大模型设置」填一次 Key
@@ -77,7 +77,7 @@ Double-click an English word or drag to select a character range across lines. C
 
 **Windows users: download one file and double-click it. No Python, no environment setup.**
 
-1. Download `PDF-AI-Viewer-v0.1.1-windows-x64.exe` (~64.75 MB, portable build)
+1. Download `PDF-AI-Viewer-v0.1.2-windows-x64.exe` (~64.75 MB, portable build)
 2. Double-click it and drag a PDF into the window
 3. Select text and click "Translate" — the **Microsoft Edge / MyMemory engines need no API key at all**
 4. A key is only required for LLM translation / summary / AI chat, configured once under "Settings → LLM Settings"
