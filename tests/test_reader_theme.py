@@ -57,6 +57,9 @@ class ReaderThemeTests(unittest.TestCase):
         QTest.qWait(30)
         image = widget.grab().toImage()
         self.assertFalse(image.isNull())
+        if widget.objectName() == "pdfSearch":
+            # The clear button occupies the right edge; sample the empty field.
+            return image.pixelColor(image.width() // 2, image.height() - 6)
         return image.pixelColor(image.width() - 12, image.height() - 12)
 
     def assert_dark(self, widget):

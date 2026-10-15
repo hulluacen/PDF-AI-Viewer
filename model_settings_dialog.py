@@ -98,7 +98,7 @@ class ModelSettingsDialog(QDialog):
         self.result = QLabel()
         self.result.setWordWrap(True)
         right.addWidget(self.result)
-        credentials = QLabel("密钥按配置存入 Windows 凭据管理器，不会随便携文件夹迁移。")
+        credentials = QLabel("密钥按配置明文保存在 data/api_keys.json；请勿分享或上传 data 文件夹。")
         credentials.setWordWrap(True)
         right.addWidget(credentials)
         folder_btn = QPushButton("打开数据目录")
@@ -209,7 +209,7 @@ class ModelSettingsDialog(QDialog):
         old_key = profiles.profile_key(old)
         key_written = False
         try:
-            # Unchanged keys need no write; unavailable keyring must not look like successful saving.
+            # Unchanged keys need no write; local file errors must be reported.
             if p["service"] != "poptrans" and self.keys[self.current_id] != old_key:
                 profiles.save_profile_key(p, self.keys[self.current_id])
                 key_written = True
@@ -220,7 +220,7 @@ class ModelSettingsDialog(QDialog):
                     profiles.save_profile_key(p, old_key)
                 except Exception:
                     QMessageBox.warning(self, "密钥回退失败", "配置未保存，但密钥已变更，请重新检查此配置的密钥。")
-            QMessageBox.warning(self, "保存失败", "无法保存配置或密钥，请检查数据目录权限和系统凭据服务。")
+            QMessageBox.warning(self, "保存失败", "无法保存配置或密钥，请检查 data 目录权限和可用空间。")
             return False
         self.state = updated
         if changes_active:
@@ -258,12 +258,11 @@ class ModelSettingsDialog(QDialog):
         except Exception:
             QMessageBox.warning(self, "删除失败", "无法写入数据目录。")
             return
-        # Keep the legacy credential so previous versions remain usable.
-        if p["credential"] != "llm_key":
-            try:
-                profiles.save_profile_key(dict(p, service="openai"), "")
-            except Exception:
-                QMessageBox.warning(self, "密钥清理失败", "配置已删除，系统凭据中的密钥未能清理。")
+        # Clear local data only; legacy system credentials remain untouched.
+        try:
+            profiles.save_profile_key(dict(p, service="openai"), "")
+        except Exception:
+            QMessageBox.warning(self, "密钥清理失败", "配置已删除，data 中的密钥未能清理。")
         self.drafts.pop(self.current_id, None)
         self.keys.pop(self.current_id, None)
         self.state = updated

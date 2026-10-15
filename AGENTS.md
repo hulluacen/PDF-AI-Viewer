@@ -17,7 +17,7 @@
 - PyQt6 — GUI
 - PyMuPDF (`pymupdf`) — PDF 渲染与文本提取
 - requests — 调用翻译 / 大模型 API
-- keyring — 系统凭据管理器（安全存储 API Key）
+- keyring — 仅用于兼容读取旧系统凭据，不再写入新密钥
 
 依赖清单见 `requirements.txt`。
 
@@ -80,10 +80,10 @@ pyinstaller --noconfirm "PDF阅读翻译器.spec"
   而不是 `result_view.setFont(font)`。后者不会改变已显示或后续 `setPlainText()`/`setHtml()`
   写入文本的字体（见 `main.py` 的 `_set_font_size`）。
 - 翻译结果区提示文字 `_set_result_hint()` 用 HTML，字号需跟随 `self.font_size`，不要写死。
-- 全局样式表 `_APP_STYLE` 定义在 `main.py` 底部。
+- 全局日夜样式定义在 theme.py，main.py 保留导入名称。
 - **PDF 库导入**：用 `import pymupdf`，不要用旧的 `import fitz`（兼容别名已弃用，每次启动会打印
   `warning: The `fitz` API is deprecated...`）。见 `pdf_viewer.py`。
-- 大模型 API Key 通过 keyring 存 Windows 凭据管理器，不落盘明文。
+- 用户于 2026-10-15 明确要求密钥直接保存在 ./data：开发源码将密钥按配置明文保存在 data/api_keys.json，原子写入，keyring 仅只读导入旧密钥（含非启用配置），不改删原系统凭据；不要恢复系统凭据作为新密钥存储。data 不上传。已发布 0.2.0 exe 尚未包含本次未发布修改。
 - **窗口状态保存**：`saveGeometry()` 返回 `QByteArray`，**没有 `.hex()` 方法**（那是 Python
   `bytes` 的方法）。必须用 `bytes(self.saveGeometry()).hex()` 保存、用
   `restoreGeometry(QByteArray(bytes.fromhex(hex)))` 恢复（见 `main.py` 的
@@ -227,3 +227,35 @@ _APP_STYLE 与 _APP_STYLE_DARK 分别为普通 QLabel 指定 #333333 与 #cccccc
 ## 0.2.0 发布
 
 version.py=0.2.0，包含便携数据迁移、独立模型配置、轻量结构拆分及夜间阅读区补齐。Release 仅列新增和修复，构建检查写入 BUILD_REPORT。本地 release-development 开发笔记及所有 data/build/dist 不上传源码。历史 tag 与附件保持。
+
+
+## 2026-10-15 本地密钥存储（未发布）
+
+用户不需要额外的跨机器密钥携带方案，要求保存在 ./data。model_profiles.py 使用 data/api_keys.json（schema=1，keys 按 credential 标识索引）；本地值优先，空值保留以阻止旧密钥回填。损坏文件不覆盖，失败不静默回退，PopTrans 不使用密钥。删除配置只清理本地值，不删除历史系统凭据。设置窗口提示已更新；不加密码或加密导出。版本仍0.2.0，GitHub与exe尚未更新。
+
+
+## 2026-10-15 图标与第二轮结构整理（未发布）
+
+main.py 当前 1123 行。background_tasks.py 保留三个线程类的原 AST；summary_window.py 保留总结视图的原 AST；app_resources.py 只处理只读打包资源。reader_toolbar.py 构造工具栏，业务回调仍留主窗口；main 保留原类导入别名和控件属性，避免大范围改接口。toolbar_icons.py 用 QIconEngine/QPainter 独立绘制五个图标，无 SVG/字体依赖，支持禁用/选中、日夜和 DPR。打开 QAction 与菜单共用，AI 问答只注册菜单快捷键。tests/test_toolbar_refactor.py 检查渲染、快捷键、按钮状态与流式类行为。
+
+spec 进一步排除 cryptography/OpenSSL/urllib3.contrib.pyopenssl 可选后端与非 Windows keyring 后端。源码进程已禁止相关库导入，实际 HTTPS 及 WinVaultKeyring 后端加载通过；保留 ssl/libssl/libcrypto/certifi、Windows 凭据、Qt 平台插件、软件 OpenGL与 PyMuPDF，实际体积需打包后记录。发布前不能仅凭排除配置声称已缩小。版本未变，未授权新的 GitHub 发布。
+
+
+## 2026-10-15 紧凑导航（未发布）
+
+reader_toolbar.ZoomSelector 合并百分比与适配模式，维护 fit_mode=page/width/None，sync 接收 viewer.zoomChanged，不回发请求。百分比10–500，实际输入与预设会切换固定缩放；失焦时未改数值不取消适配。原 zoom_mode 和 zoom_slider 已移除，zoom_percent 保留为 selector 别名供数值输入接口使用，主窗口由 _apply_selected_zoom 应用适配。
+
+翻页箭头通过页码输入值跳转，pageChanged 更新总数及边界禁用状态。搜索 SearchField 支持Shift+Enter及Esc，QShortcut处理Ctrl+F和F3；输入变化、成功换文件及关闭时 _reset_search，取消加载不重置原搜索。viewer.search/search_for 算法保持。tests/test_compact_navigation.py覆盖真实输入、匹配循环、清空、换文件及页码边界；旧缩放测试同步至新下拉控件。
+
+## 2026-10-16 可编辑原文（本地测试版，未发布）
+
+- 新增 translation_panel.py：上方 QPlainTextEdit 原文、下方只读译文，分隔条可拖动，记忆高度；不持久化原文。
+- main.py 将 PDF 选区填入原文，翻译读取编辑框原样内容，支持手工输入和 Ctrl+T；不拆驼峰、不自动改写专有名词、不修改 PDF。
+- 空选区保留草稿；成功换文档及关闭清空，取消加载保留。请求上下文检查原文修订与请求编号，防止旧回复覆盖新内容；请求未结束时禁止重复提交。
+- theme.py 补齐 QPlainTextEdit 日夜颜色；主题与字号切换保留已完成译文。
+- 新增 tests/test_editable_source.py 的6项检查。完整54项通过；最后状态提示调整后6项专项复验通过。检查使用临时配置、模拟翻译，不请求真实模型。
+- 本次经用户明确同意覆盖 dist-portable-preview/PDF阅读翻译器.exe，保留 data；版本号及公开 Release 仍为0.2.0，未上传 GitHub。
+
+## 0.2.1 版本同步（2026-10-16）
+
+version.py=0.2.1。本版包含本地明文密钥、图标与紧凑导航、主窗口模块拆分、打包依赖精简及可编辑原文。修改笔记.md 和 release-development 开发笔记仅本地保存；源码同步 main。Release 正文只列新增和修复。附件需当次明确同意后生成上传。

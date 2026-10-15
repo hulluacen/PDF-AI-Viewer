@@ -1,4 +1,15 @@
 # -*- mode: python ; coding: utf-8 -*-
+import sys
+
+# This application uses Python's standard ssl backend. The optional pyOpenSSL
+# fallback pulled cryptography/_rust.pyd into the Windows bundle (~3.3 MB compressed).
+optional_excludes = ['cryptography', 'OpenSSL', 'urllib3.contrib.pyopenssl']
+if sys.platform == 'win32':
+    optional_excludes += [
+        'keyring.backends.SecretService', 'keyring.backends.libsecret',
+        'keyring.backends.kwallet', 'keyring.backends.macOS',
+        'secretstorage', 'jeepney',
+    ]
 
 
 a = Analysis(
@@ -18,7 +29,7 @@ a = Analysis(
         'dateutil', 'six', 'jinja2', 'markupsafe', 'odf', 'xlrd',
         'xlsxwriter', 'pyarrow', 'numba', 'numexpr', 'tables', 'sqlalchemy',
         'IPython', 'traitlets', 'tornado',
-    ],
+    ] + optional_excludes,
     noarchive=False,
     optimize=0,
 )

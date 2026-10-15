@@ -9,8 +9,8 @@ import os
 import sys
 import webbrowser
 
-from PyQt6.QtCore import Qt, QThread, QTimer, QByteArray, pyqtSignal
-from PyQt6.QtGui import QAction, QFont, QKeySequence, QShortcut, QIcon, QPixmap, QTextCursor
+from PyQt6.QtCore import Qt, QTimer, QByteArray
+from PyQt6.QtGui import QAction, QFont, QKeySequence, QShortcut, QIcon, QPixmap
 from PyQt6.QtWidgets import (
     QApplication,
     QMainWindow,
@@ -20,14 +20,10 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QPushButton,
-    QLineEdit,
-    QSpinBox,
-    QSlider,
     QComboBox,
     QTextEdit,
     QFileDialog,
     QMessageBox,
-    QToolBar,
     QStatusBar,
     QMenu,
     QFrame,
@@ -37,199 +33,17 @@ from PyQt6.QtWidgets import (
 )
 
 from pdf_viewer import PdfViewer
-from translator import Translator, TranslationError
-from latex_fallback import latex_to_unicode
+from translator import Translator
 from chat_window import ChatWindow
+from background_tasks import TranslateWorker, SummarizeWorker, ChatWorker
+from summary_window import SummaryWindow
+from app_resources import resource_path
+from reader_toolbar import build_reader_toolbar
+from toolbar_icons import apply_toolbar_icons
+from translation_panel import TranslationPanel
 import settings
 from version import __version__
 from theme import _APP_STYLE, _APP_STYLE_DARK
-
-
-def resource_path(name: str) -> str:
-    """返回资源文件绝对路径，兼容源码运行与 PyInstaller 打包（frozen）环境。
-
-    PyInstaller 打包后会把 datas 里的文件解压到 sys._MEIPASS 临时目录，
-    此时 __file__ 指向该临时目录，直接用源码目录去拼路径会找不到资源。
-    """
-    base = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
-    return os.path.join(base, name)
-
-
-class TranslateWorker(QThread):
-    """后台翻译线程，避免阻塞界面。"""
-
-    finished = pyqtSignal(str)
-    failed = pyqtSignal(str)
-
-    def __init__(self, translator: Translator, text: str, engine: str = "auto",
-                 parent=None):
-        super().__init__(parent)
-        self.translator = translator
-        self.text = text
-        self.engine = engine
-
-    def run(self):
-        try:
-            result = self.translator.translate(self.text, engine=self.engine)
-            self.finished.emit(result)
-        except TranslationError as exc:
-            self.failed.emit(str(exc))
-        except Exception as exc:  # noqa: BLE001
-            self.failed.emit(str(exc))
-
-
-class SummarizeWorker(QThread):
-    """后台 AI 总结线程，流式输出，避免阻塞界面。"""
-
-    chunk = pyqtSignal(str)      # 每收到一块内容
-    finished = pyqtSignal(str)   # 全部完成，携带完整结果
-    failed = pyqtSignal(str)
-
-    def __init__(self, translator: Translator, text: str, parent=None):
-        super().__init__(parent)
-        self.translator = translator
-        self.text = text
-
-    def run(self):
-        parts = []
-        try:
-            for piece in self.translator.summarize_stream(self.text):
-                if piece:
-                    parts.append(piece)
-                    self.chunk.emit(piece)
-            self.finished.emit("".join(parts))
-        except TranslationError as exc:
-            self.failed.emit(str(exc))
-        except Exception as exc:  # noqa: BLE001
-            self.failed.emit(str(exc))
-
-
-class ChatWorker(QThread):
-    """后台问答线程，流式输出，避免阻塞界面。"""
-
-    chunk = pyqtSignal(str)
-    finished = pyqtSignal(str, bool)   # (完整回答, 是否被用户中断)
-    failed = pyqtSignal(str)
-
-    def __init__(self, translator: Translator, history: list,
-                 doc_text: str = "", parent=None):
-        super().__init__(parent)
-        self.translator = translator
-        self.history = history
-        self.doc_text = doc_text
-        self._stop = False
-
-    def stop(self):
-        """请求中断（流循环下一次迭代时生效）。"""
-        self._stop = True
-
-    def run(self):
-        parts = []
-        stopped = False
-        try:
-            for piece in self.translator.llm.chat_stream(self.history,
-                                                         self.doc_text):
-                if self._stop:
-                    stopped = True
-                    break
-                if piece:
-                    parts.append(piece)
-                    self.chunk.emit(piece)
-            self.finished.emit("".join(parts), stopped or self._stop)
-        except TranslationError as exc:
-            self.failed.emit(str(exc))
-        except Exception as exc:  # noqa: BLE001
-            self.failed.emit(str(exc))
-
-
-class SummaryWindow(QWidget):
-    """AI 总结独立窗口，可缩放、可滚动显示长总结。"""
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle("AI 总结")
-        self.resize(520, 620)
-        self.setWindowFlags(
-            Qt.WindowType.Window
-            | Qt.WindowType.WindowCloseButtonHint
-            | Qt.WindowType.WindowMaximizeButtonHint
-        )
-        # 窗口图标
-        icon_path = resource_path("logo.ico")
-        if os.path.exists(icon_path):
-            self.setWindowIcon(QIcon(icon_path))
-
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(10, 10, 10, 10)
-
-        # 标题栏
-        header = QHBoxLayout()
-        title = QLabel("AI 总结")
-        title.setStyleSheet("font-size: 15px; font-weight: bold;")
-        header.addWidget(title)
-        header.addStretch(1)
-        layout.addLayout(header)
-
-        # 总结内容（可滚动，支持 Markdown 渲染）
-        self.text_view = QTextEdit()
-        self.text_view.setReadOnly(True)
-        layout.addWidget(self.text_view, 1)
-
-        # 状态提示
-        self.status_label = QLabel("")
-        self.status_label.setStyleSheet("color: #888;")
-        layout.addWidget(self.status_label)
-
-    def set_loading(self):
-        """显示加载状态。"""
-        self._accumulated = ""
-        self.text_view.setPlainText("正在生成总结，请稍候...")
-        self.status_label.setText("正在生成总结，请稍候...")
-
-    def append_chunk(self, piece: str):
-        """流式追加一块内容。
-
-        流式阶段用 QTextCursor 增量插入纯文本，避免每次 setMarkdown 全量重解析
-        导致界面卡顿；最终结果在 show_result 里一次性做 Markdown 渲染。
-        """
-        self._accumulated += piece
-        # 若当前还是占位提示，先清空
-        if self.text_view.toPlainText() == "正在生成总结，请稍候...":
-            self.text_view.clear()
-            self.status_label.setText("正在输出中...")
-        cursor = self.text_view.textCursor()
-        cursor.movePosition(QTextCursor.MoveOperation.End)
-        cursor.insertText(piece)
-        self.text_view.setTextCursor(cursor)
-        # 滚动到底部
-        sb = self.text_view.verticalScrollBar()
-        sb.setValue(sb.maximum())
-
-    def show_result(self, text: str):
-        """显示总结结果（支持 Markdown 渲染）。"""
-        if not text or not text.strip():
-            self.text_view.setPlainText("（无总结结果）")
-        else:
-            text = self._latex_to_unicode(text)
-            try:
-                self.text_view.setMarkdown(text)
-            except Exception:  # noqa: BLE001
-                self.text_view.setPlainText(text)
-        self.status_label.setText("")
-        self.text_view.update()
-
-    @staticmethod
-    def _latex_to_unicode(text: str) -> str:
-        """把常见的 LaTeX 数学公式转成可读的 Unicode 纯文本（兜底处理）。
-
-        实现抽到 latex_fallback 模块，与问答窗口共用。
-        """
-        return latex_to_unicode(text)
-
-    def show_error(self, error: str):
-        """显示错误信息。"""
-        self.text_view.setPlainText(f"总结失败：\n{error}")
-        self.status_label.setText("")
 
 
 class MainWindow(QMainWindow):
@@ -252,6 +66,11 @@ class MainWindow(QMainWindow):
         )
         self.current_pdf = None
         self.worker = None
+        self._source_revision = 0
+        self._source_text = ""
+        self._translation_request = 0
+        self._translation_context = None
+        self._translation_busy = False
         self.font_size = 14
         self.theme = "light"  # 主题：light / dark
         # 搜索状态
@@ -274,6 +93,7 @@ class MainWindow(QMainWindow):
 
     def _setup_shortcuts(self):
         """设置全局快捷键。"""
+        QShortcut(QKeySequence("Ctrl+T"), self, activated=self._translate_current)
         # Ctrl + = / Ctrl + + 放大 PDF
         QShortcut(QKeySequence("Ctrl+="), self, activated=lambda: self._zoom_pdf(1))
         QShortcut(QKeySequence("Ctrl++"), self, activated=lambda: self._zoom_pdf(1))
@@ -281,8 +101,7 @@ class MainWindow(QMainWindow):
         QShortcut(QKeySequence("Ctrl+-"), self, activated=lambda: self._zoom_pdf(-1))
         # Ctrl + L 切换全屏
         QShortcut(QKeySequence("Ctrl+L"), self, activated=self._toggle_fullscreen)
-        # Ctrl + Shift + Q 呼出 AI 阅读问答（Ctrl+Q 已被菜单里的「退出」占用）
-        QShortcut(QKeySequence("Ctrl+Shift+Q"), self, activated=self._open_chat)
+        # AI 问答快捷键由工具菜单 QAction 提供，避免重复注册。
 
     def _zoom_pdf(self, delta: int):
         self._on_zoom_changed(round(self.viewer.zoom * 100) + delta * 10)
@@ -391,22 +210,21 @@ class MainWindow(QMainWindow):
         engine_bar.addWidget(self.engine_combo, 1)
         control_layout.addLayout(engine_bar)
 
-        self.translate_btn = QPushButton("翻译选中内容")
+        self.translate_btn = QPushButton("翻译原文")
         self.translate_btn.setEnabled(False)
         self.translate_btn.clicked.connect(self._translate_current)
         control_layout.addWidget(self.translate_btn)
 
         right_layout.addWidget(control_card)
 
-        # 结果卡片：翻译结果区
-        result_card = self._make_card()
-        result_layout = QVBoxLayout(result_card)
-        result_layout.setContentsMargins(12, 12, 12, 12)
-        self.result_view = QTextEdit()
-        self.result_view.setReadOnly(True)
+        self.translation_panel = TranslationPanel(self._make_card)
+        self.source_edit = self.translation_panel.source_edit
+        self.result_view = self.translation_panel.result_view
+        self.source_edit.textChanged.connect(self._on_source_changed)
         self._set_result_hint()
-        result_layout.addWidget(self.result_view)
-        right_layout.addWidget(result_card, 1)
+        right_layout.addWidget(self.translation_panel, 1)
+        self.translation_panel.splitterMoved.connect(lambda *_: self._save_settings())
+        self._set_font_size(self.font_size)
 
         # 分栏
         self.splitter = QSplitter(Qt.Orientation.Horizontal)
@@ -457,6 +275,7 @@ class MainWindow(QMainWindow):
 
         file_menu = menubar.addMenu("文件")
         open_action = QAction("打开 PDF...", self)
+        self.open_pdf_action = open_action
         open_action.setShortcut(QKeySequence.StandardKey.Open)
         open_action.triggered.connect(self.open_pdf)
         file_menu.addAction(open_action)
@@ -655,131 +474,7 @@ class MainWindow(QMainWindow):
             self._update_recent_menu()
 
     def _build_toolbar(self):
-        toolbar = QToolBar("主工具栏")
-        toolbar.setMovable(False)
-        self.addToolBar(toolbar)
-
-        self.bookmark_action = QAction("书签", self)
-        self.bookmark_action.setCheckable(True)
-        self.bookmark_action.setEnabled(False)
-        self.bookmark_action.setToolTip("显示或隐藏 PDF 内置书签目录")
-        self.bookmark_action.toggled.connect(self.bookmark_panel.setVisible)
-        toolbar.addAction(self.bookmark_action)
-
-        open_action = QAction("打开 PDF", self)
-        open_action.setShortcut(QKeySequence.StandardKey.Open)
-        open_action.triggered.connect(self.open_pdf)
-        toolbar.addAction(open_action)
-
-        close_action = QAction("关闭 PDF", self)
-        close_action.triggered.connect(self.close_pdf)
-        close_action.setEnabled(False)
-        toolbar.addAction(close_action)
-        self.close_action = close_action
-
-        toolbar.addSeparator()
-
-        # AI 总结（整篇文档）
-        summary_action = QAction("全文总结", self)
-        summary_action.triggered.connect(self._summarize_current)
-        summary_action.setEnabled(False)
-        toolbar.addAction(summary_action)
-        self.summary_action = summary_action
-
-        # AI 阅读问答（边读边问）
-        self.chat_action = QAction("AI 问答", self)
-        self.chat_action.setToolTip("随时向大模型提问，问答自动存进同名 .md（Ctrl+Shift+Q）")
-        self.chat_action.triggered.connect(self._open_chat)
-        self.chat_action.setEnabled(False)
-        toolbar.addAction(self.chat_action)
-
-        toolbar.addSeparator()
-
-        # 页码导航
-        self.page_label = QLabel("")
-        self.page_label.setEnabled(False)
-        toolbar.addWidget(self.page_label)
-
-        self.page_prefix_label = QLabel("跳转到第")
-        self.page_prefix_label.setEnabled(False)
-        toolbar.addWidget(self.page_prefix_label)
-        self.page_spin = QSpinBox()
-        self.page_spin.setMinimum(0)
-        self.page_spin.setMaximum(1)
-        self.page_spin.setValue(0)
-        self.page_spin.setFixedWidth(60)
-        self.page_spin.setEnabled(False)
-        self.page_spin.valueChanged.connect(self._on_spin_changed)
-        toolbar.addWidget(self.page_spin)
-        self.page_suffix_label = QLabel("页")
-        self.page_suffix_label.setEnabled(False)
-        toolbar.addWidget(self.page_suffix_label)
-
-        toolbar.addSeparator()
-
-        # 缩放：放在页码导航后、搜索前。
-        toolbar.addWidget(QLabel("缩放"))
-        self.zoom_mode = QComboBox()
-        self.zoom_mode.addItem("适合页面")
-        self.zoom_mode.addItem("适合宽度")
-        self.zoom_mode.addItem("百分比")
-        self.zoom_mode.setCurrentIndex(1)  # 默认适合宽度
-        self.zoom_mode.currentIndexChanged.connect(self._on_zoom_mode_changed)
-        toolbar.addWidget(self.zoom_mode)
-
-        # 百分比滑块（仅百分比模式可用）
-        self.zoom_slider = QSlider(Qt.Orientation.Horizontal)
-        self.zoom_slider.setRange(10, 500)
-        self.zoom_slider.setValue(150)
-        self.zoom_slider.setFixedWidth(120)
-        self.zoom_slider.valueChanged.connect(self._on_zoom_changed)
-        self.zoom_out_btn = QPushButton("−")
-        self.zoom_out_btn.setToolTip("缩小 10 个百分点（Ctrl+-）")
-        self.zoom_out_btn.clicked.connect(lambda: self._zoom_pdf(-1))
-        toolbar.addWidget(self.zoom_out_btn)
-        toolbar.addWidget(self.zoom_slider)
-        self.zoom_in_btn = QPushButton("+")
-        self.zoom_in_btn.setToolTip("放大 10 个百分点（Ctrl++）")
-        self.zoom_in_btn.clicked.connect(lambda: self._zoom_pdf(1))
-        toolbar.addWidget(self.zoom_in_btn)
-        self.zoom_percent = QSpinBox()
-        self.zoom_percent.setRange(10, 500)
-        self.zoom_percent.setSuffix("%")
-        self.zoom_percent.setValue(150)
-        self.zoom_percent.setFixedWidth(88)
-        self.zoom_percent.setKeyboardTracking(False)
-        self.zoom_percent.setToolTip("输入缩放百分比，按 Enter 确认（10%–500%）")
-        self.zoom_percent.valueChanged.connect(self._on_zoom_changed)
-        toolbar.addWidget(self.zoom_percent)
-
-        toolbar.addSeparator()
-
-        # 全文搜索
-        self.search_edit = QLineEdit()
-        self.search_edit.setObjectName("pdfSearch")
-        self.search_edit.setPlaceholderText("搜索...")
-        self.search_edit.setFixedWidth(160)
-        self.search_edit.returnPressed.connect(self._do_search)
-        toolbar.addWidget(self.search_edit)
-
-        search_btn = QPushButton("搜索")
-        search_btn.clicked.connect(self._do_search)
-        toolbar.addWidget(search_btn)
-
-        self.search_prev_btn = QPushButton("上一个")
-        self.search_prev_btn.clicked.connect(lambda: self._goto_search(-1))
-        self.search_prev_btn.setEnabled(False)
-        toolbar.addWidget(self.search_prev_btn)
-
-        self.search_next_btn = QPushButton("下一个")
-        self.search_next_btn.clicked.connect(lambda: self._goto_search(1))
-        self.search_next_btn.setEnabled(False)
-        toolbar.addWidget(self.search_next_btn)
-
-        self.search_count_label = QLabel("")
-        toolbar.addWidget(self.search_count_label)
-
-        toolbar.addSeparator()
+        self.reader_toolbar = build_reader_toolbar(self)
 
     def _build_statusbar(self):
         self.status = QStatusBar()
@@ -805,7 +500,10 @@ class MainWindow(QMainWindow):
 
     # ---------- 事件 ----------
     def _on_page_changed(self, page, total):
-        self.page_label.setText(f"第 {page} / {total} 页")
+        loaded = self.viewer.doc is not None
+        self.page_label.setText(f"/ {total if loaded else 0}")
+        self.page_prev_btn.setEnabled(loaded and page > 1)
+        self.page_next_btn.setEnabled(loaded and page < total)
         # 问答窗口记录当前页，写进笔记方便回查
         self.chat_window.set_page(page)
         # 避免触发 valueChanged 循环
@@ -818,7 +516,18 @@ class MainWindow(QMainWindow):
     def _on_spin_changed(self, value):
         self.viewer.go_to_page(value)
 
-    def _do_search(self):
+    def _reset_search(self, *_):
+        had_matches = bool(self._search_results)
+        self._search_results = []
+        self._search_index = -1
+        self._last_search_text = ""
+        self.search_prev_btn.setEnabled(False)
+        self.search_next_btn.setEnabled(False)
+        self.search_count_label.setText("0 / 0")
+        if had_matches:
+            self.viewer.clear_search()
+
+    def _do_search(self, direction=1):
         """执行全文搜索。
 
         若搜索词与上次相同，则跳到下一个结果（相当于「下一个」）；
@@ -831,12 +540,12 @@ class MainWindow(QMainWindow):
             # 搜索词变化：重新搜索，跳到第一个
             self._last_search_text = text
             self._search_results = self.viewer.search(text)
-            self._search_index = -1
+            self._search_index = -1 if direction > 0 else 0
             if self._search_results:
                 self.search_prev_btn.setEnabled(True)
                 self.search_next_btn.setEnabled(True)
                 self.search_count_label.setText(f"共 {len(self._search_results)} 处")
-                self._goto_search(1)
+                self._goto_search(direction)
             else:
                 self.search_prev_btn.setEnabled(False)
                 self.search_next_btn.setEnabled(False)
@@ -845,7 +554,7 @@ class MainWindow(QMainWindow):
                 self.status.showMessage(f"未找到「{text}」")
         else:
             # 搜索词未变：跳到下一个结果
-            self._goto_search(1)
+            self._goto_search(direction)
 
     def _goto_search(self, step: int):
         """跳转到下一个/上一个搜索结果。"""
@@ -864,29 +573,23 @@ class MainWindow(QMainWindow):
             f"第 {page_index + 1} 页，第 {self._search_index + 1} / {total} 处"
         )
 
-    def _on_zoom_mode_changed(self, index):
-        if index == 0:
+    def _apply_selected_zoom(self):
+        mode = self.zoom_selector.fit_mode
+        if mode == "page":
             self.viewer.fit_page()
-        elif index == 1:
+        elif mode == "width":
             self.viewer.fit_width()
         else:
-            self._on_zoom_changed(round(self.viewer.zoom * 100))
+            self._on_zoom_changed(self.zoom_selector.value())
 
     def _on_zoom_changed(self, value):
         value = max(10, min(int(value), 500))
         self.viewer.set_zoom(value / 100.0)
 
     def _on_viewer_zoom_changed(self, zoom):
-        index = {self.viewer.FIT_PAGE: 0, self.viewer.FIT_WIDTH: 1,
-                 self.viewer.FIT_NONE: 2}[self.viewer.fit_mode]
-        self.zoom_mode.blockSignals(True)
-        self.zoom_mode.setCurrentIndex(index)
-        self.zoom_mode.blockSignals(False)
-        pct = round(zoom * 100)
-        for control in (self.zoom_slider, self.zoom_percent):
-            control.blockSignals(True)
-            control.setValue(pct)
-            control.blockSignals(False)
+        mode = {self.viewer.FIT_PAGE: "page", self.viewer.FIT_WIDTH: "width",
+                self.viewer.FIT_NONE: None}[self.viewer.fit_mode]
+        self.zoom_selector.sync(zoom, mode)
 
     def _load_bookmarks(self):
         self.bookmark_tree.clear()
@@ -924,13 +627,39 @@ class MainWindow(QMainWindow):
         if not text:
             self.float_btn.hide()
         self._selected_text = text
-        self.translate_btn.setEnabled(bool(text))
+        # Clearing the PDF selection must not erase an edited draft.
+        if text and self.source_edit.toPlainText() != text:
+            self.source_edit.setPlainText(text)
+        self._update_translate_button()
         self.status.showMessage(f"已选中 {len(text)} 个字符")
+
+    def _update_translate_button(self):
+        self.translate_btn.setEnabled(bool(self.source_edit.toPlainText().strip()) and
+                                      not self._translation_busy)
+
+    def _on_source_changed(self):
+        text = self.source_edit.toPlainText()
+        if text == self._source_text:
+            return
+        self._source_text = text
+        self._source_revision += 1
+        self.float_btn.hide()
+        self._update_translate_button()
+        if self._translation_busy:
+            self._result_is_hint = False
+            self.result_view.setPlainText("原文已修改，请等待当前请求结束后重新翻译。")
+        else:
+            self._set_result_hint()
 
     def _on_text_selected_at(self, text, global_pos):
         """刷选文本后，在鼠标附近显示浮动翻译按钮。"""
         self._selected_text = text
-        self.translate_btn.setEnabled(bool(text))
+        if text and self.source_edit.toPlainText() != text:
+            self.source_edit.setPlainText(text)
+        self._update_translate_button()
+        if not text.strip() or self._translation_busy:
+            self.float_btn.hide()
+            return
         # 把按钮放到鼠标释放位置附近（右下偏移）
         self.float_btn.adjustSize()
         x = global_pos.x() + 12
@@ -967,39 +696,65 @@ class MainWindow(QMainWindow):
         self.status.showMessage(f"已跳转到第 {page_index + 1} 页")
 
     def _translate_current(self):
-        text = getattr(self, "_selected_text", "")
-        if not text:
+        text = self.source_edit.toPlainText()
+        if not text.strip():
+            return
+        if self._translation_busy or (self.worker is not None and self.worker.isRunning()):
+            self.status.showMessage("请等待当前翻译结束")
             return
         engine = self.engine_combo.currentData()
         engine_name = self.engine_combo.currentText()
         self.result_view.setPlainText("翻译中...")
+        self._result_is_hint = False
+        self._translation_busy = True
+        self._translation_request += 1
+        context = (self._translation_request, self._source_revision)
+        self._translation_context = context
         self.translate_btn.setEnabled(False)
         self.float_btn.hide()
         self.engine_status_label.setText(f"引擎：{engine_name} · 翻译中...")
         self.worker = TranslateWorker(self.translator, text, engine)
-        self.worker.finished.connect(self._on_translate_done)
-        self.worker.failed.connect(self._on_translate_failed)
+        self.worker.finished.connect(lambda result: self._on_translate_done(result, context))
+        self.worker.failed.connect(lambda error: self._on_translate_failed(error, context))
         self.worker.start()
 
-    def _on_translate_done(self, result):
+    def _finish_translation(self, context):
+        if context != self._translation_context:
+            return False
+        self._translation_busy = False
+        self._update_translate_button()
+        self.engine_status_label.setText(f"引擎：{self.engine_combo.currentText()}")
+        if context[1] != self._source_revision:
+            self._set_result_hint()
+            if self.source_edit.toPlainText().strip():
+                self.status.showMessage("原文已修改，可重新翻译")
+            return False
+        return True
+
+    def _on_translate_done(self, result, context):
+        if not self._finish_translation(context):
+            return
         # 用 Markdown 渲染翻译结果（支持加粗/标题/列表/代码块等）
         self.result_view.setMarkdown(result)
-        self.translate_btn.setEnabled(True)
+        self._result_is_hint = False
         self.engine_status_label.setText(f"引擎：{self.engine_combo.currentText()}")
         self.status.showMessage("翻译完成")
 
-    def _on_translate_failed(self, error):
+    def _on_translate_failed(self, error, context):
+        if not self._finish_translation(context):
+            return
         self.result_view.setPlainText(f"翻译失败：\n{error}")
-        self.translate_btn.setEnabled(True)
+        self._result_is_hint = False
         self.status.showMessage("翻译失败")
 
     def _set_result_hint(self):
         """在翻译结果区显示灰色提示文字（未打开/未翻译时）。"""
         color = "#666666" if self.theme == "dark" else "#999999"
+        self._result_is_hint = True
         self.result_view.setHtml(
             f'<div style="color:{color}; font-size:{self.font_size}px; line-height:1.8;">'
-            "在左侧 PDF 中刷选文本，<br>"
-            "点击「翻译选中内容」或按 Ctrl+T 翻译。"
+            "在左侧 PDF 中选中文本，或在上方输入、编辑原文。<br>"
+            "点击「翻译原文」或按 Ctrl+T 翻译。"
             "</div>"
         )
 
@@ -1158,10 +913,13 @@ class MainWindow(QMainWindow):
 
         # 重置翻译相关状态
         self._selected_text = ""
+        self._source_revision += 1
+        self.source_edit.clear()
         self.translate_btn.setEnabled(False)
         self.float_btn.hide()
         self._set_result_hint()
 
+        self._reset_search()
         self.current_pdf = os.path.abspath(path)
         self.setWindowTitle(f"PDF 阅读翻译器 - {os.path.basename(path)}")
         self.status.showMessage(f"已打开：{path}")
@@ -1174,16 +932,14 @@ class MainWindow(QMainWindow):
         self.chat_window.load_pdf(self.current_pdf)
         # 启用页码导航
         self.page_label.setEnabled(True)
-        self.page_prefix_label.setEnabled(True)
         self.page_spin.setEnabled(True)
-        self.page_suffix_label.setEnabled(True)
 
         # 记录到最近打开列表
         settings.add_recent(self.current_pdf)
         self._update_recent_menu()
 
         # 应用当前缩放模式（默认适合宽度）
-        self._on_zoom_mode_changed(self.zoom_mode.currentIndex())
+        self._apply_selected_zoom()
 
         # 恢复阅读位置
         pos = settings.get_position(self.current_pdf)
@@ -1217,11 +973,10 @@ class MainWindow(QMainWindow):
         self.chat_window.reset_session()
         # 禁用页码导航
         self.page_label.setEnabled(False)
-        self.page_prefix_label.setEnabled(False)
         self.page_spin.setEnabled(False)
-        self.page_suffix_label.setEnabled(False)
         # 重置页码显示（避免残留"1"）
-        self.page_label.setText("")
+        self.page_label.setText("/ 0")
+        self._reset_search()
         self.page_spin.blockSignals(True)
         self.page_spin.setMinimum(0)
         self.page_spin.setMaximum(1)
@@ -1229,6 +984,8 @@ class MainWindow(QMainWindow):
         self.page_spin.blockSignals(False)
         # 重置翻译相关状态
         self._selected_text = ""
+        self._source_revision += 1
+        self.source_edit.clear()
         self.translate_btn.setEnabled(False)
         self.float_btn.hide()
         self._set_result_hint()
@@ -1257,6 +1014,7 @@ class MainWindow(QMainWindow):
     def _apply_theme_to_widgets(self):
         """更新带硬编码颜色的控件，使其适配当前主题。"""
         theme = self.theme
+        apply_toolbar_icons(self)
         # 浮动翻译按钮（各主题下保持蓝色，便于识别）
         self.float_btn.setStyleSheet(
             "QPushButton {"
@@ -1289,7 +1047,8 @@ class MainWindow(QMainWindow):
         self.font_small_btn.setStyleSheet(btn_style)
         self.font_big_btn.setStyleSheet(btn_style)
         # 翻译结果提示文字颜色
-        self._set_result_hint()
+        if self._result_is_hint:
+            self._set_result_hint()
         # PDF 阅读区空状态提示 + 页面主题
         self.viewer.set_theme(theme)
         # 问答窗口跟随主题
@@ -1306,6 +1065,10 @@ class MainWindow(QMainWindow):
         sizes = s.get("splitter_sizes")
         if sizes and len(sizes) == 2:
             self.splitter.setSizes(sizes)
+        translation_sizes = s.get("translation_splitter_sizes")
+        if (isinstance(translation_sizes, list) and len(translation_sizes) == 2 and
+                all(isinstance(value, int) and value > 0 for value in translation_sizes)):
+            self.translation_panel.setSizes(translation_sizes)
         font_size = s.get("font_size")
         if font_size:
             self._set_font_size(font_size)
@@ -1331,6 +1094,7 @@ class MainWindow(QMainWindow):
         # 先读取已有配置，避免覆盖掉大模型设置（llm_base_url / llm_model）
         s = settings.load_settings()
         s["splitter_sizes"] = self.splitter.sizes()
+        s["translation_splitter_sizes"] = self.translation_panel.sizes()
         s["font_size"] = self.font_size
         s["chat_geometry"] = bytes(self.chat_window.saveGeometry()).hex()
         settings.save_settings(s)
@@ -1362,6 +1126,7 @@ class MainWindow(QMainWindow):
         font.setPointSize(size)
         # 必须设置到 document 上，setFont() 不会改变已显示/后续 setPlainText 的字体
         self.result_view.document().setDefaultFont(font)
+        self.source_edit.document().setDefaultFont(font)
         self.font_size_label.setText(str(size))
 
     # ---------- 拖拽打开 ----------

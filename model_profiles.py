@@ -1,7 +1,10 @@
-"""Model profile persistence and independent system credentials; no UI dependency."""
+"""Model profiles and plaintext keys in portable data; keyring is read-only legacy import."""
 import copy
+import json
+from pathlib import Path
 import uuid
 import settings
+from storage_paths import atomic_json
 
 
 def new_profile(name="新模型配置", service="openai"):
@@ -20,10 +23,12 @@ def load_profiles():
                        any(k in config for k in ("llm_base_url", "llm_model", "llm_service")) else profile["credential"])
         state = {"profiles": [profile], "active_id": profile["id"]}
         save_profiles(state)
+        _migrate_keys(state)
         return state
     state = {"profiles": copy.deepcopy(config["model_profiles"]),
              "active_id": config.get("active_model_profile")}
     _validate(state)
+    _migrate_keys(state)
     return state
 
 
@@ -59,18 +64,53 @@ def active_profile():
 def profile_key(profile):
     if profile["service"] == "poptrans":
         return ""
+    values = _load_keys()
+    identifier = profile["credential"]
+    if identifier in values:
+        return values[identifier]
     try:
         import keyring
-        return keyring.get_password(settings.APP_NAME, profile["credential"]) or ""
+        value = keyring.get_password(settings.APP_NAME, identifier) or ""
     except Exception:
         return ""
+    # Copy existing credentials without deleting or updating the legacy store.
+    values[identifier] = value
+    _save_keys(values)
+    return value
 
 
 def save_profile_key(profile, key):
     if profile["service"] == "poptrans":
         return
-    import keyring
-    if key:
-        keyring.set_password(settings.APP_NAME, profile["credential"], key)
-    elif keyring.get_password(settings.APP_NAME, profile["credential"]):
-        keyring.delete_password(settings.APP_NAME, profile["credential"])
+    values = _load_keys()
+    # Keep an explicit empty value so clearing cannot resurrect a legacy key.
+    values[profile["credential"]] = key
+    _save_keys(values)
+
+
+def _keys_file():
+    return Path(settings._config_dir()) / "api_keys.json"
+
+
+def _load_keys():
+    try:
+        with _keys_file().open(encoding="utf-8") as stream:
+            data = json.load(stream)
+    except FileNotFoundError:
+        return {}
+    if not isinstance(data, dict) or data.get("schema") != 1 or not isinstance(data.get("keys"), dict):
+        raise ValueError("api_keys.json 格式错误，请检查便携密钥文件")
+    values = data["keys"]
+    if not all(isinstance(k, str) and isinstance(v, str) for k, v in values.items()):
+        raise ValueError("api_keys.json 密钥格式错误")
+    return values
+
+
+def _save_keys(values):
+    atomic_json(_keys_file(), {"schema": 1, "keys": values})
+
+
+def _migrate_keys(state):
+    # Import inactive profiles too, so all configured keys live in data.
+    for profile in state["profiles"]:
+        profile_key(profile)

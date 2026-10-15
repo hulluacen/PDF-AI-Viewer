@@ -193,7 +193,7 @@ class ProfileTests(unittest.TestCase):
         self.assertEqual(reopened.model.currentText(), "local-model")
         reopened.reject()
 
-    def test_busy_active_change_and_keyring_failure_do_not_activate(self):
+    def test_busy_active_change_and_key_file_failure_do_not_activate(self):
         self.seed()
         dialog = ModelSettingsDialog(can_change=lambda: False)
         dialog._add()
@@ -237,6 +237,46 @@ class ProfileTests(unittest.TestCase):
             self.assertFalse(dialog._commit(False))
         self.assertEqual(settings.get_llm_key(), "legacy-secret")
         dialog.reject()
+
+    def test_local_keys_work_without_keyring_and_clear_does_not_restore_legacy(self):
+        state = self.seed()
+        profile = state["profiles"][0]
+        model_profiles.save_profile_key(profile, "local-secret")
+        with patch.dict(sys.modules, {"keyring": None}):
+            self.assertEqual(settings.get_llm_key(), "local-secret")
+        values = json.loads((Path(self.temp.name) / "api_keys.json").read_text())
+        self.assertEqual(values["keys"][profile["credential"]], "local-secret")
+        model_profiles.save_profile_key(profile, "")
+        self.assertEqual(settings.get_llm_key(), "")
+        self.assertEqual(self.secrets[(settings.APP_NAME, "llm_key")], "legacy-secret")
+
+    def test_inactive_legacy_keys_are_imported(self):
+        state = self.seed()
+        second = model_profiles.new_profile("inactive")
+        self.secrets[(settings.APP_NAME, second["credential"])] = "inactive-secret"
+        state["profiles"].append(second)
+        model_profiles.save_profiles(state)
+        loaded = model_profiles.load_profiles()
+        values = json.loads((Path(self.temp.name) / "api_keys.json").read_text())
+        self.assertEqual(values["keys"][second["credential"]], "inactive-secret")
+        self.assertEqual(loaded["active_id"], state["active_id"])
+        with patch.dict(sys.modules, {"keyring": None}):
+            self.assertEqual(model_profiles.profile_key(second), "inactive-secret")
+
+    def test_corrupt_local_keys_preserved_without_legacy_fallback(self):
+        self.seed()
+        path = Path(self.temp.name) / "api_keys.json"
+        path.write_text("broken", encoding="utf-8")
+        with self.assertRaises(ValueError):
+            settings.get_llm_key()
+        self.assertEqual(path.read_text(), "broken")
+
+    def test_key_file_write_failure_preserves_old_key(self):
+        state = self.seed()
+        with patch.object(model_profiles, "atomic_json", side_effect=OSError("read only")):
+            with self.assertRaises(OSError):
+                model_profiles.save_profile_key(state["profiles"][0], "new-secret")
+        self.assertEqual(settings.get_llm_key(), "legacy-secret")
 
     def test_threaded_probe_uses_selected_model_without_activation(self):
         calls = []

@@ -59,7 +59,10 @@ class LoadCancelTests(support.ReaderControlsTests):
         from PyQt6.QtCore import QEvent
         w = self.window
         for mode in (1, 2, 0):
-            w.zoom_mode.setCurrentIndex(mode)
+            if mode < 2:
+                w.zoom_selector.choose_fit("page" if mode == 0 else "width")
+            else:
+                w.zoom_selector.setValue(150)
             for _ in range(6):
                 w.close_pdf()
                 w.load_pdf(str(self.pdf))

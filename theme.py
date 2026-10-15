@@ -2,6 +2,7 @@
 
 # 全局样式表：现代简洁风格
 _APP_STYLE = """
+QComboBox#zoomSelector QLineEdit { background: transparent; color: #333333; border: none; }
 QLineEdit#pdfSearch {
     background-color: #ffffff;
     color: #333333;
@@ -78,6 +79,10 @@ QToolButton:disabled {
     border-color: #e0e0e0;
     color: #b0b0b0;
 }
+QToolButton:checked {
+    background-color: #e8f0fe;
+    border-color: #4a90d9;
+}
 /* 工具栏内的按钮（搜索/上一个/下一个）与 QToolButton 风格统一 */
 QToolBar QPushButton {
     background-color: #ffffff;
@@ -136,7 +141,7 @@ QPushButton:hover {
 QPushButton:disabled {
     background-color: #c0c0c0;
 }
-QTextEdit {
+QTextEdit, QPlainTextEdit {
     background-color: #ffffff;
     border: 1px solid #d0d0d0;
     border-radius: 8px;
@@ -214,6 +219,7 @@ QSplitter::handle:hover {
 
 # 夜间模式样式表
 _APP_STYLE_DARK = """
+QComboBox#zoomSelector QLineEdit { background: transparent; color: #cccccc; border: none; }
 QLineEdit#pdfSearch {
     background-color: #3a3a3a;
     color: #cccccc;
@@ -293,6 +299,10 @@ QToolButton:disabled {
     border-color: #3a3a3a;
     color: #666666;
 }
+QToolButton:checked {
+    background-color: #33445b;
+    border-color: #4a90d9;
+}
 /* 工具栏内的按钮（搜索/上一个/下一个）与 QToolButton 风格统一 */
 QToolBar QPushButton {
     background-color: #3a3a3a;
@@ -353,7 +363,7 @@ QPushButton:hover {
 QPushButton:disabled {
     background-color: #555555;
 }
-QTextEdit {
+QTextEdit, QPlainTextEdit {
     background-color: #252526;
     border: 1px solid #3a3a3a;
     border-radius: 8px;

@@ -4,7 +4,10 @@
 
 # PDF 阅读翻译器 / PDF Reader & Translator
 
-**本 fork 版本 / Fork version: 0.2.0** — [修改记录 / Changelog](CHANGELOG.md)
+**本 fork 版本 / Fork version: 0.2.1** — [修改记录 / Changelog](CHANGELOG.md)
+
+> 0.2.1：密钥按配置明文保存在程序旁的 `data/api_keys.json`，请勿分享 data 文件夹。
+> 0.2.1: keys are stored per profile in plaintext in `data/api_keys.json` beside the executable. Do not share the data folder.
 
 > Windows 便携版及校验文件通过 [本 fork 的 Releases](https://github.com/hulluacen/PDF-AI-Viewer/releases/latest) 发布；仓库仅维护源码、测试、打包配置与文档。
 > Windows builds and checksums are published through this fork’s Releases. The repository keeps source, tests, packaging configuration and documentation.
@@ -27,6 +30,12 @@ A desktop PDF reader with select-to-translate, AI full-document summary and ask-
 > Built for graduate students, researchers, and anyone who has to read a lot of English papers.
 
 ---
+
+## 可编辑翻译原文（0.2.1）/ Editable translation source (0.2.1)
+
+PDF 选中文本会填入右侧上方的原文框，可直接输入、增删空格或修改内容，再点击「翻译原文」或按 Ctrl+T；下方显示译文。拖动中间分隔条可调整两区高度。程序不会自动拆分驼峰或改写专有名词，也不会修改 PDF。清除 PDF 选区保留编辑草稿，打开另一份 PDF 或关闭文档则清空。仅保存区域高度，不保存原文草稿。
+
+Selected PDF text fills the editable source above the translation. Edit it or type directly, then click Translate Source or press Ctrl+T. Drag the divider to resize the two areas. Terms and camelCase stay unchanged; the PDF is never edited. Clearing the selection preserves the draft, while opening another PDF or closing the document clears it. Only pane sizes are saved, not source drafts.
 
 ## 新增阅读功能 / New reader controls (0.1.1)
 
@@ -65,7 +74,7 @@ Double-click an English word or drag to select a character range across lines. C
 
 **Windows 用户：下载这一个文件，双击即用。不需要装 Python，不需要配环境。**
 
-1. 下载 `PDF-AI-Viewer-v0.2.0-windows-x64.exe`（约 62 MB，免安装便携版）
+1. 下载 `PDF-AI-Viewer-v0.2.1-windows-x64.exe`（约 58.4 MB，免安装便携版）
 2. 双击打开，把 PDF 拖进窗口
 3. 刷选文本点「翻译」即可 —— **微软 Edge / MyMemory 引擎无需任何 API Key，开箱即用**
 4. 只有想用「大模型翻译 / 全文总结 / AI 问答」时，才需要在「设置 → 大模型设置」填一次 Key
@@ -77,7 +86,7 @@ Double-click an English word or drag to select a character range across lines. C
 
 **Windows users: download one file and double-click it. No Python, no environment setup.**
 
-1. Download `PDF-AI-Viewer-v0.2.0-windows-x64.exe` (~62 MB, portable build)
+1. Download `PDF-AI-Viewer-v0.2.1-windows-x64.exe` (~62 MB, portable build)
 2. Double-click it and drag a PDF into the window
 3. Select text and click "Translate" — the **Microsoft Edge / MyMemory engines need no API key at all**
 4. A key is only required for LLM translation / summary / AI chat, configured once under "Settings → LLM Settings"
@@ -140,7 +149,7 @@ select-to-translate → full-document summary → ask the paper → notes writte
 - 🔗 **PDF 链接可点击**：悬停显示手型光标，点击用系统浏览器打开；正文中的参考文献引用（内部链接）点击可直接跳转到文末对应条目
 - 🌙 **日间/夜间主题**：设置菜单可切换日间与夜间模式，夜间模式下 PDF 页面自动反色（白底变黑底），晚上读论文不刺眼
 - ⌨️ **快捷键**：`Ctrl + / Ctrl -` 调节缩放，`Ctrl + L` 切换全屏，`Ctrl + T` 翻译，`Ctrl + Shift + Q` 呼出 AI 问答
-- 🔐 **API Key 安全存储**：大模型 Key 存入 Windows 凭据管理器（keyring），不落盘明文
+- 🔐 **API Key 本地保存**：密钥按配置明文保存到 `data/api_keys.json`；请勿分享或上传 data 文件夹
 - 🕐 **状态栏日期时间**：右下角实时显示当前日期和时间，左侧显示当前翻译引擎状态
 - 🎨 **界面美化**：右侧面板卡片化（圆角 + 阴影）、翻译结果 Markdown 渲染、浮动按钮淡入动画、可调翻译字体、内置 Logo、关于对话框（含官网链接）
 
@@ -161,7 +170,7 @@ select-to-translate → full-document summary → ask the paper → notes writte
 - 🔗 **Clickable PDF links**: shows a hand cursor on hover, opens in the system browser on click; in-text reference citations (internal links) jump directly to the corresponding entry at the end of the document
 - 🌙 **Light/Dark theme**: switch between light and dark modes in the Settings menu; in dark mode the PDF pages are automatically inverted (white background becomes black) for comfortable night reading
 - ⌨️ **Shortcuts**: `Ctrl + / Ctrl -` to zoom, `Ctrl + L` to toggle fullscreen, `Ctrl + T` to translate, `Ctrl + Shift + Q` to open the AI chat
-- 🔐 **Secure API key storage**: LLM key is stored in the Windows Credential Manager (keyring), never in plaintext
+- 🔐 **Local API key storage**: per-profile keys are stored in plaintext in `data/api_keys.json`; do not share or upload the data folder
 - 🕐 **Status bar clock**: shows the current date and time in the bottom-right corner, plus the active translation engine on the left
 - 🎨 **Polished UI**: card-based right panel (rounded corners + shadow), Markdown rendering for translation results, fade-in animation for the floating button, adjustable translation font, built-in logo, About dialog (with website link)
 
@@ -210,11 +219,11 @@ select-to-translate → full-document summary → ask the paper → notes writte
 This software supports any **OpenAI-compatible** LLM endpoint. You choose the provider and fill in:
 
 - **接口地址 (Base URL)**：例如 `https://api.openai.com/v1`、`https://api.deepseek.com/v1`、`https://api.siliconflow.cn/v1` 等
-- **API Key**：从服务商获取，安全存入 Windows 凭据管理器
+- **API Key**：从服务商获取，按配置明文保存到 `data/api_keys.json`
 - **模型名 (Model)**：可手动输入，或点击「刷新模型」从服务商自动拉取下拉列表
 
 - **Base URL**: e.g. `https://api.openai.com/v1`, `https://api.deepseek.com/v1`, `https://api.siliconflow.cn/v1`, etc.
-- **API Key**: obtained from the provider, securely stored in the Windows Credential Manager
+- **API Key**: obtained from the provider, stored per profile in plaintext in `data/api_keys.json`
 - **Model**: can be typed manually, or fetched from the provider via the "Refresh Models" button
 
 ---
@@ -264,9 +273,9 @@ Notes are stored in the portable data directory. Legacy sidecar notes are copied
 | --- | --- |
 | 免费吗？会不会有广告、会员、次数限制？ | 完全免费开源（MIT），无广告、无会员、不限次数 |
 | 一定要填 API Key 才能用吗？ | 不需要。划词翻译选「微软 Edge / MyMemory」开箱即用；云端大模型通常需要 Key；PopTrans 和无鉴权回环接口无需 Key |
-| 我的 API Key 安全吗？ | Key 只存在本机的 Windows 凭据管理器中，不写进配置文件、不上传、不发送到除服务商以外的任何地方 |
+| 我的 API Key 安全吗？ | 开发版 Key 明文保存在 `data/api_keys.json`，不随源码上传；不要分享 data。密钥仅发送到配置的服务商接口 |
 | AI 会把我的论文传到云上吗？ | 只有在你使用大模型相关功能时，文本才会按你填的接口地址发给对应服务商；纯翻译用 Edge / MyMemory 走各自的公开接口 |
-| 有 exe 还要装 Python 吗？ | 不用，从 Releases 下载的 exe 双击即用，设置、阅读记录和笔记保存到 exe 旁的 `data/`；密钥仍在系统凭据管理器 |
+| 有 exe 还要装 Python 吗？ | 不用，从 Releases 下载的 exe 双击即用，设置、阅读记录和笔记保存到 exe 旁的 `data/`；开发版密钥也保存在 `data/api_keys.json` |
 | 支持 macOS / Linux 吗？ | 目前只提供 Windows 版。核心是 Python + PyQt6，跨平台移植门槛不高，欢迎提 Issue / PR |
 | 几百页的论文会卡吗？ | 页面按需渲染，滚动大文件依然流畅 |
 | 扫描版 PDF（纯图片）能用吗？ | 翻译与总结依赖可提取的文本；提取不出文本时 AI 问答会自动退回普通对话（软件本身暂不含 OCR） |
@@ -276,9 +285,9 @@ Notes are stored in the portable data directory. Legacy sidecar notes are copied
 | --- | --- |
 | Is it free? Any ads, plans or quotas? | Completely free and open source (MIT). No ads, no paid plans, no usage caps |
 | Do I need an API key to use it? | No. Select-to-translate works out of the box with Microsoft Edge / MyMemory; a key is only needed for LLM translation, summary and AI chat |
-| Is my API key safe? | It is stored only in your local Windows Credential Manager — never in a config file, never uploaded anywhere except to the provider you configured |
+| Is my API key safe? | Unreleased source stores keys in plaintext in `data/api_keys.json`; do not share data. Keys are sent only to the configured provider |
 | Does the AI upload my paper to the cloud? | Only when you use LLM features, and only to the provider endpoint you typed in |
-| Do I need Python if there is an exe? | No — the executable downloaded from Releases just runs; settings, reading records and notes are kept in data beside the executable; keys stay in Windows Credential Manager |
+| Do I need Python if there is an exe? | No — the executable downloaded from Releases just runs; settings, reading records and notes are kept in data beside the executable; unreleased source also stores keys in `data/api_keys.json` |
 | macOS / Linux support? | Windows-only for now. The core is Python + PyQt6, so a port is not far off — Issues and PRs welcome |
 | Will a 500-page paper lag? | Pages render on demand, so scrolling large files stays smooth |
 | What about scanned (image-only) PDFs? | Translation and summary rely on extractable text; if there is none, AI chat falls back to plain conversation (the app has no built-in OCR yet) |
@@ -335,7 +344,12 @@ pyinstaller --noconfirm "PDF阅读翻译器.spec"
 
 ```
 pdf_translator/
-├── main.py          # 主窗口：分栏布局、工具栏、菜单栏、翻译/总结/问答线程、浮动按钮
+├── main.py          # 主窗口组装、阅读与任务协调
+├── reader_toolbar.py# 阅读工具栏与既有动作连接
+├── toolbar_icons.py # QPainter 线性图标，无额外图像/字体依赖
+├── background_tasks.py # 翻译、总结、问答后台线程
+├── summary_window.py# 独立总结视图
+├── app_resources.py # 只读打包资源路径
 ├── pdf_viewer.py    # PDF 阅读器：按需渲染、刷选、缩放、链接点击
 ├── translator.py    # 翻译引擎：Edge / OpenAI 兼容大模型 / MyMemory，流式总结与多轮对话
 ├── chat_window.py   # AI 阅读问答：浮动对话窗口（气泡渲染、流式显示、字号与主题）
@@ -365,7 +379,7 @@ pdf_translator/
 - [PyQt6](https://www.riverbankcomputing.com/software/pyqt/) — 桌面 GUI 框架
 - [PyMuPDF](https://pymupdf.readthedocs.io/) — PDF 渲染与文本提取
 - [requests](https://requests.readthedocs.io/) — 调用翻译 / 大模型 API
-- [keyring](https://github.com/jaraco/keyring) — 系统凭据管理器（安全存储 API Key）
+- [keyring](https://github.com/jaraco/keyring) — 仅用于兼容读取旧系统凭据 / read-only import of legacy system credentials
 
 ---
 
@@ -422,9 +436,29 @@ This fork is based on fangvv/PDF-AI-Viewer and retains the original MIT license.
 - 「设置 → 大模型设置」左侧列出独立配置；每份配置分别保存接口类型、地址、模型和密钥，支持新增、重命名（修改配置名称）、删除、获取模型和检查连接。
 - 点击列表只查看，保存非启用配置不会切换；点击「启用此配置」保存并切换，始终只有一个启用配置。正在翻译、总结或问答时，禁止修改当前启用配置。
 - 检查连接使用后台独立客户端；OpenAI 兼容配置发送简短请求验证选定模型，PopTrans 检查 `/health`。PopTrans 不发送密钥或模型名，只支持翻译。
-- API Key 按配置独立存入 Windows 凭据管理器，不写入 JSON。拷贝便携文件夹到另一台电脑后需要重新填写密钥。
+- 开发版 API Key 按配置独立明文保存到 `data/api_keys.json`，旧系统凭据可复制导入，原件不删除；不提供额外的加密导出或跨机器迁移流程。请勿分享或上传 data。
 - 在模型设置中点击「打开数据目录」即可定位数据；便携目录必须可写，不会静默回退到用户目录。
 
 Settings, recent files, reading positions and chat notes are stored in `data/` beside the executable (beside the source files when running Python). Legacy user data is copied without removing originals or overwriting existing portable files. Existing PDF sidecar notes are imported on first access. New records for PDFs inside the application folder use relative paths.
 
-The model settings dialog uses a vertical profile list. Each profile has its own URL, model, service type and credential. Selecting or saving an inactive profile does not activate it; the activation button saves and switches the single active profile. Connection checks run in a background thread with a separate client and verify the selected model. PopTrans uses its health endpoint and supports translation only. Keys remain in Windows Credential Manager and must be entered again on another computer. Use “Open data folder” to locate portable files. Version 0.2.0 is portable and does not include an installer.
+The model settings dialog uses a vertical profile list. Each profile has its own URL, model, service type and credential. Selecting or saving an inactive profile does not activate it; the activation button saves and switches the single active profile. Connection checks run in a background thread with a separate client and verify the selected model. PopTrans uses its health endpoint and supports translation only. Unreleased source stores keys per profile in plaintext in `data/api_keys.json` and copies available legacy system credentials without deleting originals. There is no separate encrypted export or cross-computer migration workflow. Do not share the data folder. Use “Open data folder” to locate portable files. Version 0.2.0 is portable and does not include an installer.
+
+
+## 开发中：图标工具栏与结构整理 / Unreleased: icon toolbar and structure
+
+截图中的书签、打开 PDF、关闭 PDF、全文总结、AI 问答改为线性图标，保留悬停提示、无障碍名称和快捷键。书签启用时保留选中状态，日夜主题及高 DPI 自动适配。参考 [Lucide](https://lucide.dev/icons) 的线性风格，使用独立 QPainter 绘制代码，没有下载图标资源或增加依赖。
+
+后台任务、总结窗口、工具栏与只读资源路径从主窗口抽离，保留原有调用接口和 PDF 加载/取消、选区、搜索逻辑。打开文件和 AI 问答快捷键去重，避免重复注册。
+
+打包配置进一步排除可选 pyOpenSSL/cryptography 及 Windows 不使用的系统凭据后端，保留标准 SSL、Windows 旧凭据读取、PyMuPDF 与软件 OpenGL。实际缩减体积以新包核验结果为准。
+
+The five reader actions use independently drawn line icons with tooltips, accessible names, theme-aware states and high-DPI rendering. The style references Lucide; no icon font or SVG dependency is added. Worker threads, the summary view, toolbar construction and resource lookup now live in separate modules. Duplicate Open and AI Chat shortcuts are removed. Packaging excludes optional crypto fallback packages and non-Windows keyring backends while preserving standard SSL and the Windows legacy backend. These source changes are not part of the published 0.2.0 executable.
+
+
+## 紧凑导航、缩放与搜索（未发布） / Compact navigation, zoom and find (unreleased)
+
+页码区改为上一页/下一页图标与“当前页 / 总页数”，支持输入页码回车，到首尾页禁用对应按钮。缩放区移除滑块和重复适配控件，合并为可输入百分比的下拉框，提供10%–500%预设、实际大小、适合页面/宽度，保留减号、加号与Ctrl滚轮。
+
+搜索区参考 [PDF.js 的搜索栏](https://github.com/mozilla/pdf.js/blob/master/web/pdf_find_bar.js)：输入框、搜索图标、当前匹配/总数、上下细箭头。Ctrl+F聚焦，Enter/F3下一个，Shift+Enter/Shift+F3上一个，Esc清空搜索。清空或修改搜索词、成功换文档、关闭文档时清理旧匹配状态，未匹配时禁用箭头。翻页箭头与匹配箭头分别提示“PDF页”和“匹配”，不改变PyMuPDF的搜索算法。
+
+Page navigation uses previous/next icons and an editable page number followed by the total. A single editable zoom selector provides percentage presets and fitting modes without a slider. Find controls follow the PDF.js pattern with a query, match counter and separate previous/next match arrows. Ctrl+F focuses find; Enter/F3 moves forward; Shift+Enter/Shift+F3 moves backward; Esc clears find. Existing text extraction and matching algorithms remain unchanged.
